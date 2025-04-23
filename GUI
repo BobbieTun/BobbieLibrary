@@ -14,6 +14,7 @@ local Theme = {
     SliderFill = Color3.fromRGB(120, 80, 255),
     ToggleOn = Color3.fromRGB(100, 200, 255),
     ButtonHover = Color3.fromRGB(70, 30, 110),
+    DropdownItem = Color3.fromRGB(35, 15, 55),
     RuneColor = Color3.fromRGB(150, 100, 255)
 }
 
@@ -217,20 +218,32 @@ function GuiLibrary.new(title, config)
         Parent = self.TitleBar
     })
     
-    -- Tab container
-    self.TabContainer = Create("Frame", {
+    -- Tab container (with horizontal scrolling)
+    self.TabContainerFrame = Create("Frame", {
+        Name = "TabContainerFrame",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 40),
+        Parent = self.MainFrame
+    })
+    
+    self.TabContainer = Create("ScrollingFrame", {
         Name = "TabContainer",
         BackgroundColor3 = Theme.Foreground,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 30),
-        Size = UDim2.new(1, 0, 0, 40),
-        ClipsDescendants = true,
-        Parent = self.MainFrame
+        Size = UDim2.new(1, 0, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 5,
+        ScrollBarImageColor3 = Theme.Accent,
+        ScrollBarImageTransparency = 0.7,
+        ScrollingDirection = Enum.ScrollingDirection.X,
+        Parent = self.TabContainerFrame,
+        ClipsDescendants = true
     })
     AddNeonGlow(self.TabContainer)
     
     -- Tab list layout
-    Create("UIListLayout", {
+    self.TabLayout = Create("UIListLayout", {
         Name = "TabLayout",
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
@@ -238,12 +251,10 @@ function GuiLibrary.new(title, config)
         Parent = self.TabContainer
     })
     
-    -- Add padding to tab container
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 5),
-        PaddingRight = UDim.new(0, 5),
-        Parent = self.TabContainer
-    })
+    -- Update tab container size when tabs are added
+    self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.TabContainer.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
+    end)
     
     -- Content frame
     self.ContentFrame = Create("ScrollingFrame", {
@@ -255,7 +266,6 @@ function GuiLibrary.new(title, config)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 5,
         ScrollBarImageColor3 = Theme.Accent,
-        ScrollBarImageTransparency = 0.7,
         Parent = self.MainFrame
     })
     
@@ -275,9 +285,15 @@ function GuiLibrary.new(title, config)
     end)
     
     self.MinimizeButton.MouseButton1Click:Connect(function()
-        self.ContentFrame.Visible = not self.ContentFrame.Visible
-        local newHeight = self.ContentFrame.Visible and (isMobile and 0.9 or 550) or 70
-        self.MainFrame.Size = UDim2.new(self.MainFrame.Size.X, UDim.new(0, newHeight))
+        local isMinimized = not self.ContentFrame.Visible
+        self.ContentFrame.Visible = not isMinimized
+        self.TabContainerFrame.Visible = not isMinimized
+        
+        if isMinimized then
+            self.MainFrame.Size = UDim2.new(self.MainFrame.Size.X, UDim.new(0, 30)) -- Titlebar only
+        else
+            self.MainFrame.Size = windowSize -- Restore original size
+        end
     end)
     
     -- Keybind functionality
@@ -438,6 +454,7 @@ function GuiLibrary:AddTab(name)
                 LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
+            table.insert(self.Elements, label)
             return label
         end
         
@@ -472,15 +489,20 @@ function GuiLibrary:AddTab(name)
                 buttonGlow.Thickness = 1
             end)
             
-            button.MouseButton1Click:Connect(callback)
+            button.MouseButton1Click:Connect(function()
+                if callback then callback() end
+            end)
             
+            table.insert(self.Elements, button)
             return button
         end
         
         -- TOGGLE ELEMENT
         function section:AddToggle(name, default, callback)
-            local toggle = {}
-            local state = default or false
+            local toggle = {
+                Value = default or false,
+                Callback = callback
+            }
             
             toggle.Frame = Create("Frame", {
                 Name = "Toggle_"..name,
@@ -505,38 +527,45 @@ function GuiLibrary:AddTab(name)
             
             toggle.Button = Create("TextButton", {
                 Name = "ToggleButton",
-                BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground,
+                BackgroundColor3 = toggle.Value and Theme.ToggleOn or Theme.Foreground,
                 BorderColor3 = Theme.Border,
                 BorderSizePixel = 1,
                 Position = UDim2.new(0.7, 0, 0.1, 0),
                 Size = UDim2.new(0.3, 0, 0.8, 0),
                 Font = Enum.Font.Gotham,
-                Text = state and "ON" or "OFF",
+                Text = toggle.Value and "ON" or "OFF",
                 TextColor3 = Color3.new(1, 1, 1),
                 TextSize = 14,
                 Parent = toggle.Frame
             })
             
             local toggleGlow = AddNeonGlow(toggle.Button)
-            toggleGlow.Color = state and Theme.Highlight or Theme.Accent
+            toggleGlow.Color = toggle.Value and Theme.Highlight or Theme.Accent
+            
+            function toggle:SetValue(value)
+                self.Value = value
+                self.Button.Text = self.Value and "ON" or "OFF"
+                self.Button.BackgroundColor3 = self.Value and Theme.ToggleOn or Theme.Foreground
+                toggleGlow.Color = self.Value and Theme.Highlight or Theme.Accent
+                if self.Callback then self.Callback(self.Value) end
+            end
             
             toggle.Button.MouseButton1Click:Connect(function()
-                state = not state
-                toggle.Button.Text = state and "ON" or "OFF"
-                toggle.Button.BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground
-                toggleGlow.Color = state and Theme.Highlight or Theme.Accent
-                if callback then callback(state) end
+                toggle:SetValue(not toggle.Value)
             end)
             
+            table.insert(self.Elements, toggle)
             return toggle
         end
         
         -- SLIDER ELEMENT
         function section:AddSlider(name, min, max, default, callback)
-            local slider = {}
-            local value = math.clamp(default or min, min, max)
-            local isDragging = false
-            local connection
+            local slider = {
+                Min = min,
+                Max = max,
+                Value = math.clamp(default or min, min, max),
+                Callback = callback
+            }
             
             slider.Frame = Create("Frame", {
                 Name = "Slider_"..name,
@@ -552,7 +581,7 @@ function GuiLibrary:AddTab(name)
                 Position = UDim2.new(0, 0, 0, 0),
                 Size = UDim2.new(1, 0, 0, 20),
                 Font = Enum.Font.Gotham,
-                Text = name..": "..value,
+                Text = string.format("%s: %.2f", name, slider.Value),
                 TextColor3 = Theme.Text,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -574,7 +603,7 @@ function GuiLibrary:AddTab(name)
                 Name = "Fill",
                 BackgroundColor3 = Theme.SliderFill,
                 BorderSizePixel = 0,
-                Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
+                Size = UDim2.new((slider.Value - slider.Min)/(slider.Max - slider.Min), 0, 1, 0),
                 Parent = slider.Track
             })
             
@@ -588,63 +617,47 @@ function GuiLibrary:AddTab(name)
             })
             
             local function updateSlider(input)
-                local relativeX
-                if input then
-                    local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-                    relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
-                else
-                    relativeX = (value - min)/(max - min)
-                end
-                
-                value = math.clamp(min + (max - min) * relativeX, min, max)
-                local displayValue = math.floor(value * 100)/100
-                slider.Label.Text = name..": "..displayValue
+                local relativeX = (input.Position.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+                slider.Value = math.clamp(slider.Min + (slider.Max - slider.Min) * relativeX, slider.Min, slider.Max)
+                slider.Label.Text = string.format("%s: %.2f", name, slider.Value)
                 slider.Fill.Size = UDim2.new(math.clamp(relativeX, 0, 1), 0, 1, 0)
-                if callback then callback(value) end
+                if slider.Callback then slider.Callback(slider.Value) end
             end
             
-            local function stopDragging()
-                isDragging = false
-                if connection then
-                    connection:Disconnect()
-                    connection = nil
-                end
-            end
-            
-            slider.Button.MouseButton1Down:Connect(function()
-                isDragging = true
-                updateSlider(true)
-                connection = game:GetService("RunService").Heartbeat:Connect(function()
-                    updateSlider(true)
-                end)
-            end)
-            
-            game:GetService("UserInputService").InputEnded:Connect(function(input)
+            slider.Button.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    stopDragging()
+                    updateSlider(input)
+                    local connection
+                    connection = game:GetService("RunService").Heartbeat:Connect(function()
+                        updateSlider(game:GetService("UserInputService"):GetMouseLocation())
+                    end)
+                    
+                    local function endDrag(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            connection:Disconnect()
+                        end
+                    end
+                    
+                    game:GetService("UserInputService").InputEnded:Connect(endDrag)
                 end
             end)
             
-            slider.Frame.AncestryChanged:Connect(function()
-                if not slider.Frame.Parent then
-                    stopDragging()
-                end
-            end)
-            
-            function slider:SetValue(newValue)
-                value = math.clamp(newValue, min, max)
-                slider.Label.Text = name..": "..math.floor(value * 100)/100
-                slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
-                if callback then callback(value) end
+            function slider:SetValue(value)
+                self.Value = math.clamp(value, self.Min, self.Max)
+                self.Label.Text = string.format("%s: %.2f", name, self.Value)
+                self.Fill.Size = UDim2.new((self.Value - self.Min)/(self.Max - self.Min), 0, 1, 0)
+                if self.Callback then self.Callback(self.Value) end
             end
             
-            updateSlider(false)
+            table.insert(self.Elements, slider)
             return slider
         end
         
         -- INPUT BOX ELEMENT
         function section:AddInput(name, placeholder, callback)
-            local input = {}
+            local input = {
+                Callback = callback
+            }
             
             input.Frame = Create("Frame", {
                 Name = "Input_"..name,
@@ -684,14 +697,164 @@ function GuiLibrary:AddTab(name)
             AddNeonGlow(input.Box)
             
             input.Box.FocusLost:Connect(function(enterPressed)
-                if enterPressed and callback then
-                    callback(input.Box.Text)
+                if enterPressed and input.Callback then
+                    input.Callback(input.Box.Text)
                 end
             end)
             
+            table.insert(self.Elements, input)
             return input
         end
         
+        -- DROPDOWN ELEMENT
+        function section:AddDropdown(name, options, default, callback)
+            local dropdown = {
+                Options = options,
+                Selected = default or options[1],
+                Callback = callback,
+                Open = false
+            }
+            
+            dropdown.Frame = Create("Frame", {
+                Name = "Dropdown_"..name,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 30),
+                LayoutOrder = #section.Content:GetChildren(),
+                Parent = section.Content,
+                ClipsDescendants = true
+            })
+            
+            dropdown.Label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(0.4, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = name,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = dropdown.Frame
+            })
+            
+            dropdown.MainButton = Create("TextButton", {
+                Name = "MainButton",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Position = UDim2.new(0.4, 0, 0, 0),
+                Size = UDim2.new(0.6, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = dropdown.Selected,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                Parent = dropdown.Frame
+            })
+            AddNeonGlow(dropdown.MainButton)
+            
+            dropdown.OptionsFrame = Create("Frame", {
+                Name = "OptionsFrame",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Position = UDim2.new(0.4, 0, 1, 5),
+                Size = UDim2.new(0.6, 0, 0, 0),
+                Visible = false,
+                Parent = dropdown.Frame
+            })
+            AddNeonGlow(dropdown.OptionsFrame)
+            
+            dropdown.OptionsLayout = Create("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 1),
+                Parent = dropdown.OptionsFrame
+            })
+            
+            -- Create option buttons
+            local function createOptionButtons()
+                -- Clear existing options
+                for _, child in ipairs(dropdown.OptionsFrame:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child:Destroy()
+                    end
+                end
+                
+                -- Create new options
+                for i, option in ipairs(dropdown.Options) do
+                    local optionButton = Create("TextButton", {
+                        Name = "Option_"..option,
+                        BackgroundColor3 = Theme.DropdownItem,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(1, 0, 0, 25),
+                        Font = Enum.Font.Gotham,
+                        Text = option,
+                        TextColor3 = Theme.Text,
+                        TextSize = 14,
+                        LayoutOrder = i,
+                        Parent = dropdown.OptionsFrame
+                    })
+                    
+                    optionButton.MouseButton1Click:Connect(function()
+                        dropdown.Selected = option
+                        dropdown.MainButton.Text = option
+                        dropdown.Open = false
+                        dropdown.OptionsFrame.Visible = false
+                        dropdown.Frame.Size = UDim2.new(1, -10, 0, 30)
+                        if dropdown.Callback then
+                            dropdown.Callback(option)
+                        end
+                    end)
+                    
+                    -- Hover effect
+                    optionButton.MouseEnter:Connect(function()
+                        optionButton.BackgroundColor3 = Theme.ButtonHover
+                    end)
+                    
+                    optionButton.MouseLeave:Connect(function()
+                        optionButton.BackgroundColor3 = Theme.DropdownItem
+                    end)
+                end
+                
+                -- Update options frame size
+                dropdown.OptionsFrame.Size = UDim2.new(0.6, 0, 0, #dropdown.Options * 26)
+            end
+            
+            createOptionButtons()
+            
+            -- Toggle dropdown
+            dropdown.MainButton.MouseButton1Click:Connect(function()
+                dropdown.Open = not dropdown.Open
+                dropdown.OptionsFrame.Visible = dropdown.Open
+                
+                if dropdown.Open then
+                    dropdown.Frame.Size = UDim2.new(1, -10, 0, 30 + (#dropdown.Options * 26) + 5)
+                else
+                    dropdown.Frame.Size = UDim2.new(1, -10, 0, 30)
+                end
+            end)
+            
+            function dropdown:UpdateOptions(newOptions, newDefault)
+                self.Options = newOptions
+                self.Selected = newDefault or newOptions[1]
+                self.MainButton.Text = self.Selected
+                createOptionButtons()
+            end
+            
+            function dropdown:SetSelected(option)
+                if table.find(self.Options, option) then
+                    self.Selected = option
+                    self.MainButton.Text = option
+                    if self.Callback then
+                        self.Callback(option)
+                    end
+                end
+            end
+            
+            table.insert(self.Elements, dropdown)
+            return dropdown
+        end
+        
+        table.insert(self.Elements, section)
         return section
     end
     
