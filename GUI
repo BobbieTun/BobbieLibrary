@@ -314,6 +314,7 @@ function GuiLibrary:CreateSection(name)
 function section:AddSlider(name, min, max, default, callback)
     local slider = {}
     local value = default or min
+    local connection = nil
     
     slider.Frame = Create("Frame", {
         Name = "Slider_"..name,
@@ -363,32 +364,43 @@ function section:AddSlider(name, min, max, default, callback)
         Parent = slider.Frame
     })
     
-    local function updateSlider(input)
-        local relativeX = (input.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+    local function updateSlider()
+        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+        local relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
         value = math.floor(math.clamp(min + (max - min) * relativeX, min, max) * 100)/100
         slider.Label.Text = name..": "..value
-        slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
+        slider.Fill.Size = UDim2.new(math.clamp((value - min)/(max - min), 0, 1, 0), 0, 1, 0)
         if callback then callback(value) end
     end
     
+    local function disconnect()
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+    end
+    
     slider.Button.MouseButton1Down:Connect(function()
-        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        updateSlider(Vector2.new(mouse.X, mouse.Y))
-        
-        local connection
+        updateSlider()
         connection = game:GetService("UserInputService").InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseMovement then
-                local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-                updateSlider(Vector2.new(mouse.X, mouse.Y))
+                updateSlider()
             end
         end)
         
-        local function disconnect()
-            connection:Disconnect()
-            game:GetService("UserInputService").MouseButton1Up:Disconnect(disconnect)
+        -- Disconnect when mouse button is released
+        local releaseConnection
+        releaseConnection = game:GetService("UserInputService").MouseButton1Up:Connect(function()
+            disconnect()
+            releaseConnection:Disconnect()
+        end)
+    end)
+    
+    -- Cleanup when GUI is destroyed
+    slider.Button.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            disconnect()
         end
-        
-        game:GetService("UserInputService").MouseButton1Up:Connect(disconnect)
     end)
     
     return slider
