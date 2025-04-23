@@ -27,6 +27,50 @@ local function Create(class, properties)
     return instance
 end
 
+-- Draggable window method
+function GuiLibrary:Draggable(dragElement, mainElement)
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        mainElement.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
+    dragElement.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainElement.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    dragElement.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
 -- Main window with tabs
 function GuiLibrary.new(title)
     local self = setmetatable({}, GuiLibrary)
@@ -40,7 +84,7 @@ function GuiLibrary.new(title)
         Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
     })
     
-    -- Main window frame (larger for tabs)
+    -- Main window frame
     self.MainFrame = Create("Frame", {
         Name = "MainWindow",
         BackgroundColor3 = Theme.Background,
@@ -119,13 +163,13 @@ function GuiLibrary.new(title)
         Parent = self.TabContainer
     })
     
-    -- Content frame (below tabs)
+    -- Content frame
     self.ContentFrame = Create("ScrollingFrame", {
         Name = "Content",
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 70), -- Lower position to account for tabs
-        Size = UDim2.new(1, 0, 1, -70), -- Adjusted height
+        Position = UDim2.new(0, 0, 0, 70),
+        Size = UDim2.new(1, 0, 1, -70),
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 5,
         Parent = self.MainFrame
@@ -284,7 +328,7 @@ function GuiLibrary:AddTab(name)
             return label
         end
         
-        -- Paragraph element (multi-line text)
+        -- Paragraph element
         function section:AddParagraph(text, options)
             options = options or {}
             local paragraph = Create("TextLabel", {
@@ -384,119 +428,115 @@ function GuiLibrary:AddTab(name)
             return toggle
         end
         
-        -- Slider element
+        -- Slider element (fixed version)
         function section:AddSlider(name, min, max, default, callback)
-    local slider = {}
-    local value = math.clamp(default or min, min, max)
-    local isDragging = false
-    local connection
-    
-    slider.Frame = Create("Frame", {
-        Name = "Slider_"..name,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -10, 0, 50),
-        LayoutOrder = #section.Content:GetChildren(),
-        Parent = section.Content
-    })
-    
-    slider.Label = Create("TextLabel", {
-        Name = "Label",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, 0, 0, 20),
-        Font = Enum.Font.Gotham,
-        Text = name..": "..value,
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = slider.Frame
-    })
-    
-    slider.Track = Create("Frame", {
-        Name = "Track",
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Position = UDim2.new(0, 0, 0, 25),
-        Size = UDim2.new(1, 0, 0, 10),
-        Parent = slider.Frame
-    })
-    
-    slider.Fill = Create("Frame", {
-        Name = "Fill",
-        BackgroundColor3 = Theme.Accent,
-        BorderSizePixel = 0,
-        Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
-        Parent = slider.Track
-    })
-    
-    slider.Button = Create("TextButton", {
-        Name = "SliderButton",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 25),
-        Size = UDim2.new(1, 0, 0, 10),
-        Text = "",
-        Parent = slider.Frame
-    })
-    
-    local function updateSlider(input)
-        local relativeX
-        if input then
-            -- For touch/mouse movement
-            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-            relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
-        else
-            -- For initial setup
-            relativeX = (value - min)/(max - min)
+            local slider = {}
+            local value = math.clamp(default or min, min, max)
+            local isDragging = false
+            local connection
+            
+            slider.Frame = Create("Frame", {
+                Name = "Slider_"..name,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 50),
+                LayoutOrder = #section.Content:GetChildren(),
+                Parent = section.Content
+            })
+            
+            slider.Label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(1, 0, 0, 20),
+                Font = Enum.Font.Gotham,
+                Text = name..": "..value,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = slider.Frame
+            })
+            
+            slider.Track = Create("Frame", {
+                Name = "Track",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Position = UDim2.new(0, 0, 0, 25),
+                Size = UDim2.new(1, 0, 0, 10),
+                Parent = slider.Frame
+            })
+            
+            slider.Fill = Create("Frame", {
+                Name = "Fill",
+                BackgroundColor3 = Theme.Accent,
+                BorderSizePixel = 0,
+                Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
+                Parent = slider.Track
+            })
+            
+            slider.Button = Create("TextButton", {
+                Name = "SliderButton",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 0, 0, 25),
+                Size = UDim2.new(1, 0, 0, 10),
+                Text = "",
+                Parent = slider.Frame
+            })
+            
+            local function updateSlider(input)
+                local relativeX
+                if input then
+                    local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+                    relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+                else
+                    relativeX = (value - min)/(max - min)
+                end
+                
+                value = math.clamp(min + (max - min) * relativeX, min, max)
+                local displayValue = math.floor(value * 100)/100
+                slider.Label.Text = name..": "..displayValue
+                slider.Fill.Size = UDim2.new(math.clamp(relativeX, 0, 1), 0, 1, 0)
+                if callback then callback(value) end
+            end
+            
+            local function stopDragging()
+                isDragging = false
+                if connection then
+                    connection:Disconnect()
+                    connection = nil
+                end
+            end
+            
+            slider.Button.MouseButton1Down:Connect(function()
+                isDragging = true
+                updateSlider(true)
+                connection = game:GetService("RunService").Heartbeat:Connect(function()
+                    updateSlider(true)
+                end)
+            end)
+            
+            game:GetService("UserInputService").InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    stopDragging()
+                end
+            end)
+            
+            slider.Frame.AncestryChanged:Connect(function()
+                if not slider.Frame.Parent then
+                    stopDragging()
+                end
+            end)
+            
+            function slider:SetValue(newValue)
+                value = math.clamp(newValue, min, max)
+                slider.Label.Text = name..": "..math.floor(value * 100)/100
+                slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
+                if callback then callback(value) end
+            end
+            
+            updateSlider(false)
+            return slider
         end
-        
-        value = math.clamp(min + (max - min) * relativeX, min, max)
-        local displayValue = math.floor(value * 100)/100 -- Show 2 decimal places
-        slider.Label.Text = name..": "..displayValue
-        slider.Fill.Size = UDim2.new(math.clamp(relativeX, 0, 1), 0, 1, 0)
-        if callback then callback(value) end
-    end
-    
-    local function stopDragging()
-        isDragging = false
-        if connection then
-            connection:Disconnect()
-            connection = nil
-        end
-    end
-    
-    slider.Button.MouseButton1Down:Connect(function()
-        isDragging = true
-        updateSlider(true)
-        connection = game:GetService("RunService").Heartbeat:Connect(function()
-            updateSlider(true)
-        end)
-    end)
-    
-    game:GetService("UserInputService").InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            stopDragging()
-        end
-    end)
-    
-    slider.Frame.AncestryChanged:Connect(function()
-        if not slider.Frame.Parent then
-            stopDragging()
-        end
-    end)
-    
-    function slider:SetValue(newValue)
-        value = math.clamp(newValue, min, max)
-        slider.Label.Text = name..": "..math.floor(value * 100)/100
-        slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
-        if callback then callback(value) end
-    end
-    
-    -- Initialize the slider
-    updateSlider(false)
-    
-    return slider
-end
         
         -- Input box element
         function section:AddInput(name, placeholder, callback)
