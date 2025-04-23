@@ -1,19 +1,23 @@
 local GuiLibrary = {}
 GuiLibrary.__index = GuiLibrary
 
--- Enhanced Theme Configuration
+-- ====== FANTASY THEME CONFIGURATION ======
 local Theme = {
-    Background = Color3.fromRGB(20, 20, 25),
-    Foreground = Color3.fromRGB(30, 30, 35),
-    Accent = Color3.fromRGB(150, 50, 255),
-    Text = Color3.fromRGB(240, 240, 240),
-    Border = Color3.fromRGB(50, 50, 60),
-    Highlight = Color3.fromRGB(180, 80, 255),
-    TabActive = Color3.fromRGB(60, 60, 70),
-    TabInactive = Color3.fromRGB(40, 40, 50)
+    Background = Color3.fromRGB(15, 5, 25),       -- Deep purple-black background
+    Foreground = Color3.fromRGB(25, 10, 40),      -- Dark purple sections
+    Accent = Color3.fromRGB(140, 30, 220),        -- Vibrant purple accent
+    Text = Color3.fromRGB(180, 120, 255),         -- Soft purple text (hybrid purple/blue)
+    Border = Color3.fromRGB(60, 20, 90),          -- Dark purple borders
+    Highlight = Color3.fromRGB(100, 200, 255),    -- Blue neon highlight
+    TabActive = Color3.fromRGB(80, 30, 120),      -- Active tab (darker purple)
+    TabInactive = Color3.fromRGB(40, 15, 60),     -- Inactive tab (darkest purple)
+    SliderFill = Color3.fromRGB(120, 80, 255),    -- Purple-blue slider fill
+    ToggleOn = Color3.fromRGB(100, 200, 255),     -- Blue neon for toggle ON state
+    ButtonHover = Color3.fromRGB(70, 30, 110),    -- Purple button hover
+    RuneColor = Color3.fromRGB(150, 100, 255)     -- Color for magical runes
 }
 
--- Utility function
+-- ====== UTILITY FUNCTIONS ======
 local function Create(class, properties)
     local instance = Instance.new(class)
     for property, value in pairs(properties) do
@@ -27,158 +31,60 @@ local function Create(class, properties)
     return instance
 end
 
--- Main window with tabs
-function GuiLibrary.new(title, config)
-    -- Default configuration
-    config = config or {}
-    local defaultKeybind = Enum.KeyCode.LeftControl
-    local keybind = config.ToggleKeybind or defaultKeybind
+local function AddNeonGlow(instance)
+    local glow = Instance.new("UIStroke")
+    glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    glow.Color = Theme.Highlight
+    glow.Transparency = 0.7
+    glow.Thickness = 1
+    glow.LineJoinMode = Enum.LineJoinMode.Round
+    glow.Parent = instance
     
-    local self = setmetatable({}, GuiLibrary)
-    local UserInputService = game:GetService("UserInputService")
-    local isMobile = UserInputService.TouchEnabled
+    coroutine.wrap(function()
+        while glow and glow.Parent do
+            for i = 0.7, 0.9, 0.05 do
+                glow.Transparency = i
+                task.wait(0.1)
+            end
+            for i = 0.9, 0.7, -0.05 do
+                glow.Transparency = i
+                task.wait(0.1)
+            end
+        end
+    end)()
     
-    -- Platform-specific settings
-    local windowSize = isMobile and UDim2.new(0.9, 0, 0.9, 0) or UDim2.new(0, 450, 0, 550)
-    local windowPosition = isMobile and UDim2.new(0.05, 0, 0.05, 0) or UDim2.new(0.3, 0, 0.2, 0)
-    local tabButtonSize = isMobile and UDim2.new(0, 80, 1, 0) or UDim2.new(0, 100, 1, 0)
+    return glow
+end
+
+local function CreateRune(parent, position, size)
+    local rune = Instance.new("ImageLabel")
+    rune.Name = "MagicRune"
+    rune.Image = "rbxassetid://7733960981"  -- Default rune image
+    rune.Size = UDim2.new(0, size, 0, size)
+    rune.Position = position
+    rune.BackgroundTransparency = 1
+    rune.ImageColor3 = Theme.RuneColor
+    rune.ImageTransparency = 0.8
+    rune.ZIndex = 0
+    rune.Parent = parent
     
-    -- Create screen GUI
-    self.ScreenGui = Create("ScreenGui", {
-        Name = "EnhancedGuiLibrary",
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Global,
-        Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-    })
-    
-    -- Main window frame
-    self.MainFrame = Create("Frame", {
-        Name = "MainWindow",
-        BackgroundColor3 = Theme.Background,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Position = windowPosition,
-        Size = windowSize,
-        Parent = self.ScreenGui
-    })
-    
-    -- Title bar
-    self.TitleBar = Create("Frame", {
-        Name = "TitleBar",
-        BackgroundColor3 = Theme.Foreground,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 30),
-        Parent = self.MainFrame
-    })
-    
-    -- Title text
-    self.TitleLabel = Create("TextLabel", {
-        Name = "Title",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(0.6, -10, 1, 0),
-        Font = Enum.Font.GothamSemibold,
-        Text = title or "Enhanced GUI",
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = self.TitleBar
-    })
-    
-    -- Close button
-    self.CloseButton = Create("TextButton", {
-        Name = "CloseButton",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -30, 0, 0),
-        Size = UDim2.new(0, 30, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "X",
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        Parent = self.TitleBar
-    })
-    
-    -- Minimize button
-    self.MinimizeButton = Create("TextButton", {
-        Name = "MinimizeButton",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -60, 0, 0),
-        Size = UDim2.new(0, 30, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "_",
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        Parent = self.TitleBar
-    })
-    
-    -- Tab container
-    self.TabContainer = Create("Frame", {
-        Name = "TabContainer",
-        BackgroundColor3 = Theme.Foreground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 30),
-        Size = UDim2.new(1, 0, 0, 40),
-        Parent = self.MainFrame
-    })
-    
-    -- Tab list layout
-    Create("UIListLayout", {
-        Name = "TabLayout",
-        FillDirection = Enum.FillDirection.Horizontal,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
-        Parent = self.TabContainer
-    })
-    
-    -- Content frame
-    self.ContentFrame = Create("ScrollingFrame", {
-        Name = "Content",
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 70),
-        Size = UDim2.new(1, 0, 1, -70),
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        ScrollBarThickness = 5,
-        Parent = self.MainFrame
-    })
-    
-    -- Content layout
-    Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 10),
-        Parent = self.ContentFrame
-    })
-    
-    -- Make window draggable
-    self:Draggable(self.TitleBar, self.MainFrame)
-    
-    -- Button functionality
-    self.CloseButton.MouseButton1Click:Connect(function()
-        self:Destroy()
-    end)
-    
-    self.MinimizeButton.MouseButton1Click:Connect(function()
-        self.ContentFrame.Visible = not self.ContentFrame.Visible
-        local newHeight = self.ContentFrame.Visible and (isMobile and 0.9 or 550) or 70
-        self.MainFrame.Size = UDim2.new(self.MainFrame.Size.X, UDim.new(0, newHeight))
-    end)
-    
-    -- Keybind functionality
-    self.Keybind = keybind
-    self.KeybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == self.Keybind then
-            self:Toggle()
+    spawn(function()
+        while rune and rune.Parent do
+            for i = 0.8, 0.9, 0.01 do
+                rune.ImageTransparency = i
+                task.wait(0.05)
+            end
+            for i = 0.9, 0.8, -0.01 do
+                rune.ImageTransparency = i
+                task.wait(0.05)
+            end
         end
     end)
     
-    -- Tab management
-    self.Tabs = {}
-    self.CurrentTab = nil
-    
-    return self
+    return rune
 end
 
--- Draggable window method
+-- ====== CORE GUI FUNCTIONS ======
 function GuiLibrary:Draggable(dragElement, mainElement)
     local dragging
     local dragInput
@@ -222,11 +128,170 @@ function GuiLibrary:Draggable(dragElement, mainElement)
     end)
 end
 
--- Add tab creation function
+function GuiLibrary.new(title, config)
+    config = config or {}
+    local defaultKeybind = Enum.KeyCode.RightControl
+    local keybind = config.ToggleKeybind or defaultKeybind
+    
+    local self = setmetatable({}, GuiLibrary)
+    local UserInputService = game:GetService("UserInputService")
+    local isMobile = UserInputService.TouchEnabled
+    
+    -- Platform-specific settings
+    local windowSize = isMobile and UDim2.new(0.9, 0, 0.9, 0) or UDim2.new(0, 450, 0, 550)
+    local windowPosition = isMobile and UDim2.new(0.05, 0, 0.05, 0) or UDim2.new(0.3, 0, 0.2, 0)
+    local tabButtonSize = isMobile and UDim2.new(0, 80, 1, 0) or UDim2.new(0, 110, 1, 0)
+    
+    -- Create screen GUI
+    self.ScreenGui = Create("ScreenGui", {
+        Name = "ArcaneGUI",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Global,
+        Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    })
+    
+    -- Main window frame with fantasy styling
+    self.MainFrame = Create("Frame", {
+        Name = "MainWindow",
+        BackgroundColor3 = Theme.Background,
+        BorderColor3 = Theme.Border,
+        BorderSizePixel = 1,
+        Position = windowPosition,
+        Size = windowSize,
+        Parent = self.ScreenGui
+    })
+    AddNeonGlow(self.MainFrame)
+    
+    -- Add magical runes to background
+    CreateRune(self.MainFrame, UDim2.new(0.1, 0, 0.1, 0), 50)
+    CreateRune(self.MainFrame, UDim2.new(0.8, 0, 0.2, 0), 40)
+    CreateRune(self.MainFrame, UDim2.new(0.3, 0, 0.7, 0), 60)
+    
+    -- Title bar
+    self.TitleBar = Create("Frame", {
+        Name = "TitleBar",
+        BackgroundColor3 = Theme.Foreground,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 30),
+        Parent = self.MainFrame
+    })
+    AddNeonGlow(self.TitleBar)
+    
+    -- Title text with special styling
+    self.TitleLabel = Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(0.6, -10, 1, 0),
+        Font = Enum.Font.GothamSemibold,
+        Text = title or "Arcane GUI",
+        TextColor3 = Theme.Highlight,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.TitleBar
+    })
+    
+    -- Close button
+    self.CloseButton = Create("TextButton", {
+        Name = "CloseButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -30, 0, 0),
+        Size = UDim2.new(0, 30, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "✕",
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.TitleBar
+    })
+    
+    -- Minimize button
+    self.MinimizeButton = Create("TextButton", {
+        Name = "MinimizeButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -60, 0, 0),
+        Size = UDim2.new(0, 30, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "─",
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.TitleBar
+    })
+    
+    -- Tab container
+    self.TabContainer = Create("Frame", {
+        Name = "TabContainer",
+        BackgroundColor3 = Theme.Foreground,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 40),
+        Parent = self.MainFrame
+    })
+    AddNeonGlow(self.TabContainer)
+    
+    -- Tab list layout
+    Create("UIListLayout", {
+        Name = "TabLayout",
+        FillDirection = Enum.FillDirection.Horizontal,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = self.TabContainer
+    })
+    
+    -- Content frame
+    self.ContentFrame = Create("ScrollingFrame", {
+        Name = "Content",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 70),
+        Size = UDim2.new(1, 0, 1, -70),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 5,
+        ScrollBarImageColor3 = Theme.Accent,
+        Parent = self.MainFrame
+    })
+    
+    -- Content layout
+    Create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
+        Parent = self.ContentFrame
+    })
+    
+    -- Make window draggable
+    self:Draggable(self.TitleBar, self.MainFrame)
+    
+    -- Button functionality
+    self.CloseButton.MouseButton1Click:Connect(function()
+        self:Destroy()
+    end)
+    
+    self.MinimizeButton.MouseButton1Click:Connect(function()
+        self.ContentFrame.Visible = not self.ContentFrame.Visible
+        local newHeight = self.ContentFrame.Visible and (isMobile and 0.9 or 550) or 70
+        self.MainFrame.Size = UDim2.new(self.MainFrame.Size.X, UDim.new(0, newHeight))
+    end)
+    
+    -- Keybind functionality
+    self.Keybind = keybind
+    self.KeybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == self.Keybind then
+            self:Toggle()
+        end
+    end)
+    
+    -- Tab management
+    self.Tabs = {}
+    self.CurrentTab = nil
+    
+    return self
+end
+
+-- ====== TAB MANAGEMENT ======
 function GuiLibrary:AddTab(name)
-    local tab = {}
     local isMobile = game:GetService("UserInputService").TouchEnabled
-    local tabButtonSize = isMobile and UDim2.new(0, 80, 1, 0) or UDim2.new(0, 100, 1, 0)
+    local tabButtonSize = isMobile and UDim2.new(0, 80, 1, 0) or UDim2.new(0, 110, 1, 0)
+    
+    local tab = {}
     
     -- Tab button
     tab.Button = Create("TextButton", {
@@ -241,6 +306,7 @@ function GuiLibrary:AddTab(name)
         LayoutOrder = #self.TabContainer:GetChildren(),
         Parent = self.TabContainer
     })
+    AddNeonGlow(tab.Button)
     
     -- Tab content frame
     tab.Content = Create("ScrollingFrame", {
@@ -248,6 +314,9 @@ function GuiLibrary:AddTab(name)
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
         Visible = false,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 5,
+        ScrollBarImageColor3 = Theme.Accent,
         Parent = self.ContentFrame
     })
     
@@ -295,6 +364,7 @@ function GuiLibrary:AddTab(name)
             LayoutOrder = #tab.Content:GetChildren(),
             Parent = tab.Content
         })
+        AddNeonGlow(section.Frame)
         
         section.Title = Create("TextLabel", {
             Name = "Title",
@@ -303,7 +373,7 @@ function GuiLibrary:AddTab(name)
             Size = UDim2.new(1, -10, 0, 20),
             Font = Enum.Font.GothamSemibold,
             Text = name,
-            TextColor3 = Theme.Accent,
+            TextColor3 = Theme.Highlight,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = section.Frame
@@ -339,7 +409,7 @@ function GuiLibrary:AddTab(name)
                 Size = UDim2.new(1, -10, 0, options.Height or 20),
                 Font = Enum.Font.Gotham,
                 Text = text,
-                TextColor3 = Theme.Text,
+                TextColor3 = options.TextColor3 or Theme.Text,
                 TextSize = options.TextSize or 14,
                 TextWrapped = true,
                 TextXAlignment = options.Alignment or Enum.TextXAlignment.Left,
@@ -358,7 +428,7 @@ function GuiLibrary:AddTab(name)
                 Size = UDim2.new(1, -10, 0, 0),
                 Font = Enum.Font.Gotham,
                 Text = text,
-                TextColor3 = Theme.Text,
+                TextColor3 = options.TextColor3 or Theme.Text,
                 TextSize = options.TextSize or 12,
                 TextWrapped = true,
                 TextXAlignment = options.Alignment or Enum.TextXAlignment.Left,
@@ -385,13 +455,19 @@ function GuiLibrary:AddTab(name)
                 Parent = section.Content
             })
             
+            local buttonGlow = AddNeonGlow(button)
+            
             -- Hover effects
             button.MouseEnter:Connect(function()
-                button.BackgroundColor3 = Theme.Highlight
+                button.BackgroundColor3 = Theme.ButtonHover
+                buttonGlow.Color = Theme.Highlight
+                buttonGlow.Thickness = 2
             end)
             
             button.MouseLeave:Connect(function()
                 button.BackgroundColor3 = Theme.Foreground
+                buttonGlow.Color = Theme.Accent
+                buttonGlow.Thickness = 1
             end)
             
             button.MouseButton1Click:Connect(callback)
@@ -427,22 +503,26 @@ function GuiLibrary:AddTab(name)
             
             toggle.Button = Create("TextButton", {
                 Name = "ToggleButton",
-                BackgroundColor3 = state and Theme.Accent or Theme.Foreground,
+                BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground,
                 BorderColor3 = Theme.Border,
                 BorderSizePixel = 1,
                 Position = UDim2.new(0.7, 0, 0.1, 0),
                 Size = UDim2.new(0.3, 0, 0.8, 0),
                 Font = Enum.Font.Gotham,
                 Text = state and "ON" or "OFF",
-                TextColor3 = Theme.Text,
+                TextColor3 = Color3.new(1, 1, 1),
                 TextSize = 14,
                 Parent = toggle.Frame
             })
             
+            local toggleGlow = AddNeonGlow(toggle.Button)
+            toggleGlow.Color = state and Theme.Highlight or Theme.Accent
+            
             toggle.Button.MouseButton1Click:Connect(function()
                 state = not state
                 toggle.Button.Text = state and "ON" or "OFF"
-                toggle.Button.BackgroundColor3 = state and Theme.Accent or Theme.Foreground
+                toggle.Button.BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground
+                toggleGlow.Color = state and Theme.Highlight or Theme.Accent
                 if callback then callback(state) end
             end)
             
@@ -486,10 +566,11 @@ function GuiLibrary:AddTab(name)
                 Size = UDim2.new(1, 0, 0, 10),
                 Parent = slider.Frame
             })
+            AddNeonGlow(slider.Track)
             
             slider.Fill = Create("Frame", {
                 Name = "Fill",
-                BackgroundColor3 = Theme.Accent,
+                BackgroundColor3 = Theme.SliderFill,
                 BorderSizePixel = 0,
                 Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
                 Parent = slider.Track
@@ -598,6 +679,7 @@ function GuiLibrary:AddTab(name)
                 TextSize = 14,
                 Parent = input.Frame
             })
+            AddNeonGlow(input.Box)
             
             input.Box.FocusLost:Connect(function(enterPressed)
                 if enterPressed and callback then
@@ -614,7 +696,7 @@ function GuiLibrary:AddTab(name)
     return tab
 end
 
--- Update canvas size for specific tab
+-- ====== GUI MANAGEMENT FUNCTIONS ======
 function GuiLibrary:UpdateCanvas(tab)
     local totalHeight = 0
     for _, child in ipairs(tab.Content:GetChildren()) do
@@ -625,12 +707,10 @@ function GuiLibrary:UpdateCanvas(tab)
     tab.Content.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
 end
 
--- Toggle visibility
 function GuiLibrary:Toggle()
     self.ScreenGui.Enabled = not self.ScreenGui.Enabled
 end
 
--- Set new keybind
 function GuiLibrary:SetKeybind(newKeybind)
     if self.KeybindConnection then
         self.KeybindConnection:Disconnect()
@@ -646,7 +726,6 @@ function GuiLibrary:SetKeybind(newKeybind)
     end)
 end
 
--- Destroy GUI
 function GuiLibrary:Destroy()
     if self.KeybindConnection then
         self.KeybindConnection:Disconnect()
