@@ -293,6 +293,10 @@ function GuiLibrary:AddTab(name)
     
     local tab = {}
     
+    -- Fix tab container overflow
+    local tabContainer = self.TabContainer
+    tabContainer.ClipsDescendants = true
+    
     -- Tab button
     tab.Button = Create("TextButton", {
         Name = "Tab_"..name,
@@ -317,7 +321,9 @@ function GuiLibrary:AddTab(name)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 5,
         ScrollBarImageColor3 = Theme.Accent,
-        Parent = self.ContentFrame
+        Parent = self.ContentFrame,
+        ScrollBarImageTransparency = 0.7,
+        ScrollingDirection = Enum.ScrollingDirection.Y
     })
     
     -- Content layout
@@ -325,6 +331,13 @@ function GuiLibrary:AddTab(name)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 10),
         Parent = tab.Content
+    })
+    
+    -- Add padding to tab container
+    Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 5),
+        PaddingRight = UDim.new(0, 5),
+        Parent = tabContainer
     })
     
     -- Tab selection function
@@ -360,11 +373,18 @@ function GuiLibrary:AddTab(name)
             BackgroundColor3 = Theme.Foreground,
             BorderColor3 = Theme.Border,
             BorderSizePixel = 1,
-            Size = UDim2.new(1, -10, 0, 0),
+            Size = UDim2.new(1, -20, 0, 0), -- Reduced width by 20 (10 padding each side)
             LayoutOrder = #tab.Content:GetChildren(),
             Parent = tab.Content
         })
         AddNeonGlow(section.Frame)
+        
+        -- Add padding to section
+        Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 10),
+            PaddingRight = UDim.new(0, 10),
+            Parent = section.Frame
+        })
         
         section.Title = Create("TextLabel", {
             Name = "Title",
@@ -396,8 +416,8 @@ function GuiLibrary:AddTab(name)
         -- Auto-size section
         section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             section.Content.Size = UDim2.new(1, 0, 0, section.Layout.AbsoluteContentSize.Y)
-            section.Frame.Size = UDim2.new(1, -10, 0, section.Layout.AbsoluteContentSize.Y + 35)
-            self.Gui:UpdateCanvas(tab)
+            section.Frame.Size = UDim2.new(1, -20, 0, section.Layout.AbsoluteContentSize.Y + 35)
+            self:UpdateCanvas(tab)
         end)
         
         -- Label element
