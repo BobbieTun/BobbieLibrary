@@ -3,18 +3,18 @@ GuiLibrary.__index = GuiLibrary
 
 -- ====== FANTASY THEME CONFIGURATION ======
 local Theme = {
-    Background = Color3.fromRGB(15, 5, 25),       -- Deep purple-black background
-    Foreground = Color3.fromRGB(25, 10, 40),      -- Dark purple sections
-    Accent = Color3.fromRGB(140, 30, 220),        -- Vibrant purple accent
-    Text = Color3.fromRGB(180, 120, 255),         -- Soft purple text (hybrid purple/blue)
-    Border = Color3.fromRGB(60, 20, 90),          -- Dark purple borders
-    Highlight = Color3.fromRGB(100, 200, 255),    -- Blue neon highlight
-    TabActive = Color3.fromRGB(80, 30, 120),      -- Active tab (darker purple)
-    TabInactive = Color3.fromRGB(40, 15, 60),     -- Inactive tab (darkest purple)
-    SliderFill = Color3.fromRGB(120, 80, 255),    -- Purple-blue slider fill
-    ToggleOn = Color3.fromRGB(100, 200, 255),     -- Blue neon for toggle ON state
-    ButtonHover = Color3.fromRGB(70, 30, 110),    -- Purple button hover
-    RuneColor = Color3.fromRGB(150, 100, 255)     -- Color for magical runes
+    Background = Color3.fromRGB(15, 5, 25),
+    Foreground = Color3.fromRGB(25, 10, 40),
+    Accent = Color3.fromRGB(140, 30, 220),
+    Text = Color3.fromRGB(180, 120, 255),
+    Border = Color3.fromRGB(60, 20, 90),
+    Highlight = Color3.fromRGB(100, 200, 255),
+    TabActive = Color3.fromRGB(80, 30, 120),
+    TabInactive = Color3.fromRGB(40, 15, 60),
+    SliderFill = Color3.fromRGB(120, 80, 255),
+    ToggleOn = Color3.fromRGB(100, 200, 255),
+    ButtonHover = Color3.fromRGB(70, 30, 110),
+    RuneColor = Color3.fromRGB(150, 100, 255)
 }
 
 -- ====== UTILITY FUNCTIONS ======
@@ -59,7 +59,7 @@ end
 local function CreateRune(parent, position, size)
     local rune = Instance.new("ImageLabel")
     rune.Name = "MagicRune"
-    rune.Image = "rbxassetid://7733960981"  -- Default rune image
+    rune.Image = "rbxassetid://7733960981"
     rune.Size = UDim2.new(0, size, 0, size)
     rune.Position = position
     rune.BackgroundTransparency = 1
@@ -224,6 +224,7 @@ function GuiLibrary.new(title, config)
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 0, 30),
         Size = UDim2.new(1, 0, 0, 40),
+        ClipsDescendants = true,
         Parent = self.MainFrame
     })
     AddNeonGlow(self.TabContainer)
@@ -237,6 +238,13 @@ function GuiLibrary.new(title, config)
         Parent = self.TabContainer
     })
     
+    -- Add padding to tab container
+    Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 5),
+        PaddingRight = UDim.new(0, 5),
+        Parent = self.TabContainer
+    })
+    
     -- Content frame
     self.ContentFrame = Create("ScrollingFrame", {
         Name = "Content",
@@ -247,6 +255,7 @@ function GuiLibrary.new(title, config)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 5,
         ScrollBarImageColor3 = Theme.Accent,
+        ScrollBarImageTransparency = 0.7,
         Parent = self.MainFrame
     })
     
@@ -297,14 +306,6 @@ function GuiLibrary:AddTab(name)
         Elements = {}
     }
 
-    -- Configure tab container
-    self.TabContainer.ClipsDescendants = true
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 5),
-        PaddingRight = UDim.new(0, 5),
-        Parent = self.TabContainer
-    })
-
     -- Create tab button
     tab.Button = Create("TextButton", {
         Name = "Tab_"..name,
@@ -330,15 +331,13 @@ function GuiLibrary:AddTab(name)
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 5,
         ScrollBarImageColor3 = Theme.Accent,
-        ScrollBarImageTransparency = 0.7,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
         Parent = self.ContentFrame
     })
 
     -- Content layout
-    local contentLayout = Create("UIListLayout", {
+    Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 15),
+        Padding = UDim.new(0, 10),
         Parent = tab.Content
     })
 
@@ -353,20 +352,23 @@ function GuiLibrary:AddTab(name)
         self.Gui.CurrentTab = self
     end
 
+    tab.Gui = self
+    table.insert(self.Tabs, tab)
+
+    -- Select first tab by default
+    if #self.Tabs == 1 then
+        tab:Select()
+    end
+
     -- Click handler
     tab.Button.MouseButton1Click:Connect(function()
         tab:Select()
     end)
 
-    -- Section creation
+    -- Section creation for this tab
     function tab:CreateSection(name)
-        local section = {
-            Name = name,
-            Tab = self,
-            Elements = {}
-        }
-
-        -- Section frame
+        local section = {}
+        
         section.Frame = Create("Frame", {
             Name = "Section_"..name,
             BackgroundColor3 = Theme.Foreground,
@@ -378,20 +380,18 @@ function GuiLibrary:AddTab(name)
             ClipsDescendants = true
         })
         AddNeonGlow(section.Frame)
-
-        -- Section padding
+        
+        -- Add padding to section
         Create("UIPadding", {
             PaddingLeft = UDim.new(0, 10),
             PaddingRight = UDim.new(0, 10),
-            PaddingTop = UDim.new(0, 5),
-            PaddingBottom = UDim.new(0, 5),
             Parent = section.Frame
         })
-
-        -- Section title
+        
         section.Title = Create("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
+            Position = UDim2.new(0, 5, 0, 5),
             Size = UDim2.new(1, -10, 0, 20),
             Font = Enum.Font.GothamSemibold,
             Text = name,
@@ -400,35 +400,33 @@ function GuiLibrary:AddTab(name)
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = section.Frame
         })
-
-        -- Section content area
+        
         section.Content = Create("Frame", {
             Name = "Content",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 0, 0, 25),
+            Position = UDim2.new(0, 0, 0, 30),
             Size = UDim2.new(1, 0, 0, 0),
             Parent = section.Frame
         })
-
-        -- Section layout
+        
         section.Layout = Create("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
+            Padding = UDim.new(0, 5),
             Parent = section.Content
         })
-
+        
         -- Auto-size section
         section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             section.Content.Size = UDim2.new(1, 0, 0, section.Layout.AbsoluteContentSize.Y)
-            section.Frame.Size = UDim2.new(1, -20, 0, section.Layout.AbsoluteContentSize.Y + 30)
+            section.Frame.Size = UDim2.new(1, -20, 0, section.Layout.AbsoluteContentSize.Y + 35)
             self.Gui:UpdateCanvas(tab)
         end)
-
+        
         -- LABEL ELEMENT
         function section:AddLabel(text, options)
             options = options or {}
             local label = Create("TextLabel", {
-                Name = "Label_"..text,
+                Name = "Label",
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, -10, 0, options.Height or 20),
                 Font = Enum.Font.Gotham,
@@ -440,10 +438,9 @@ function GuiLibrary:AddTab(name)
                 LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
-            table.insert(self.Elements, label)
             return label
         end
-
+        
         -- BUTTON ELEMENT
         function section:AddButton(name, callback)
             local button = Create("TextButton", {
@@ -475,20 +472,15 @@ function GuiLibrary:AddTab(name)
                 buttonGlow.Thickness = 1
             end)
             
-            button.MouseButton1Click:Connect(function()
-                if callback then callback() end
-            end)
+            button.MouseButton1Click:Connect(callback)
             
-            table.insert(self.Elements, button)
             return button
         end
-
+        
         -- TOGGLE ELEMENT
         function section:AddToggle(name, default, callback)
-            local toggle = {
-                Value = default or false,
-                Callback = callback
-            }
+            local toggle = {}
+            local state = default or false
             
             toggle.Frame = Create("Frame", {
                 Name = "Toggle_"..name,
@@ -513,45 +505,38 @@ function GuiLibrary:AddTab(name)
             
             toggle.Button = Create("TextButton", {
                 Name = "ToggleButton",
-                BackgroundColor3 = toggle.Value and Theme.ToggleOn or Theme.Foreground,
+                BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground,
                 BorderColor3 = Theme.Border,
                 BorderSizePixel = 1,
                 Position = UDim2.new(0.7, 0, 0.1, 0),
                 Size = UDim2.new(0.3, 0, 0.8, 0),
                 Font = Enum.Font.Gotham,
-                Text = toggle.Value and "ON" or "OFF",
+                Text = state and "ON" or "OFF",
                 TextColor3 = Color3.new(1, 1, 1),
                 TextSize = 14,
                 Parent = toggle.Frame
             })
             
             local toggleGlow = AddNeonGlow(toggle.Button)
-            toggleGlow.Color = toggle.Value and Theme.Highlight or Theme.Accent
-            
-            function toggle:SetValue(value)
-                self.Value = value
-                self.Button.Text = self.Value and "ON" or "OFF"
-                self.Button.BackgroundColor3 = self.Value and Theme.ToggleOn or Theme.Foreground
-                toggleGlow.Color = self.Value and Theme.Highlight or Theme.Accent
-                if self.Callback then self.Callback(self.Value) end
-            end
+            toggleGlow.Color = state and Theme.Highlight or Theme.Accent
             
             toggle.Button.MouseButton1Click:Connect(function()
-                toggle:SetValue(not toggle.Value)
+                state = not state
+                toggle.Button.Text = state and "ON" or "OFF"
+                toggle.Button.BackgroundColor3 = state and Theme.ToggleOn or Theme.Foreground
+                toggleGlow.Color = state and Theme.Highlight or Theme.Accent
+                if callback then callback(state) end
             end)
             
-            table.insert(self.Elements, toggle)
             return toggle
         end
-
+        
         -- SLIDER ELEMENT
         function section:AddSlider(name, min, max, default, callback)
-            local slider = {
-                Min = min,
-                Max = max,
-                Value = math.clamp(default or min, min, max),
-                Callback = callback
-            }
+            local slider = {}
+            local value = math.clamp(default or min, min, max)
+            local isDragging = false
+            local connection
             
             slider.Frame = Create("Frame", {
                 Name = "Slider_"..name,
@@ -567,7 +552,7 @@ function GuiLibrary:AddTab(name)
                 Position = UDim2.new(0, 0, 0, 0),
                 Size = UDim2.new(1, 0, 0, 20),
                 Font = Enum.Font.Gotham,
-                Text = string.format("%s: %.2f", name, slider.Value),
+                Text = name..": "..value,
                 TextColor3 = Theme.Text,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -589,7 +574,7 @@ function GuiLibrary:AddTab(name)
                 Name = "Fill",
                 BackgroundColor3 = Theme.SliderFill,
                 BorderSizePixel = 0,
-                Size = UDim2.new((slider.Value - slider.Min)/(slider.Max - slider.Min), 0, 1, 0),
+                Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
                 Parent = slider.Track
             })
             
@@ -603,47 +588,63 @@ function GuiLibrary:AddTab(name)
             })
             
             local function updateSlider(input)
-                local relativeX = (input.Position.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
-                slider.Value = math.clamp(slider.Min + (slider.Max - slider.Min) * relativeX, slider.Min, slider.Max)
-                slider.Label.Text = string.format("%s: %.2f", name, slider.Value)
+                local relativeX
+                if input then
+                    local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+                    relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+                else
+                    relativeX = (value - min)/(max - min)
+                end
+                
+                value = math.clamp(min + (max - min) * relativeX, min, max)
+                local displayValue = math.floor(value * 100)/100
+                slider.Label.Text = name..": "..displayValue
                 slider.Fill.Size = UDim2.new(math.clamp(relativeX, 0, 1), 0, 1, 0)
-                if slider.Callback then slider.Callback(slider.Value) end
+                if callback then callback(value) end
             end
             
-            slider.Button.InputBegan:Connect(function(input)
+            local function stopDragging()
+                isDragging = false
+                if connection then
+                    connection:Disconnect()
+                    connection = nil
+                end
+            end
+            
+            slider.Button.MouseButton1Down:Connect(function()
+                isDragging = true
+                updateSlider(true)
+                connection = game:GetService("RunService").Heartbeat:Connect(function()
+                    updateSlider(true)
+                end)
+            end)
+            
+            game:GetService("UserInputService").InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    updateSlider(input)
-                    local connection
-                    connection = game:GetService("RunService").Heartbeat:Connect(function()
-                        updateSlider(game:GetService("UserInputService"):GetMouseLocation())
-                    end)
-                    
-                    local function endDrag(input)
-                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            connection:Disconnect()
-                        end
-                    end
-                    
-                    game:GetService("UserInputService").InputEnded:Connect(endDrag)
+                    stopDragging()
                 end
             end)
             
-            function slider:SetValue(value)
-                self.Value = math.clamp(value, self.Min, self.Max)
-                self.Label.Text = string.format("%s: %.2f", name, self.Value)
-                self.Fill.Size = UDim2.new((self.Value - self.Min)/(self.Max - self.Min), 0, 1, 0)
-                if self.Callback then self.Callback(self.Value) end
+            slider.Frame.AncestryChanged:Connect(function()
+                if not slider.Frame.Parent then
+                    stopDragging()
+                end
+            end)
+            
+            function slider:SetValue(newValue)
+                value = math.clamp(newValue, min, max)
+                slider.Label.Text = name..": "..math.floor(value * 100)/100
+                slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
+                if callback then callback(value) end
             end
             
-            table.insert(self.Elements, slider)
+            updateSlider(false)
             return slider
         end
-
+        
         -- INPUT BOX ELEMENT
         function section:AddInput(name, placeholder, callback)
-            local input = {
-                Callback = callback
-            }
+            local input = {}
             
             input.Frame = Create("Frame", {
                 Name = "Input_"..name,
@@ -683,27 +684,20 @@ function GuiLibrary:AddTab(name)
             AddNeonGlow(input.Box)
             
             input.Box.FocusLost:Connect(function(enterPressed)
-                if enterPressed and input.Callback then
-                    input.Callback(input.Box.Text)
+                if enterPressed and callback then
+                    callback(input.Box.Text)
                 end
             end)
             
-            table.insert(self.Elements, input)
             return input
         end
-
-        table.insert(self.Elements, section)
+        
         return section
     end
-
-    -- Select first tab automatically
-    if #self.Tabs == 0 then
-        tab:Select()
-    end
-
-    table.insert(self.Tabs, tab)
+    
     return tab
 end
+
 -- ====== GUI MANAGEMENT FUNCTIONS ======
 function GuiLibrary:UpdateCanvas(tab)
     local totalHeight = 0
