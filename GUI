@@ -1,7 +1,7 @@
 local GuiLibrary = {}
 GuiLibrary.__index = GuiLibrary
 
--- ====== FANTASY THEME CONFIGURATION ======
+-- ====== THEME CONFIGURATION ======
 local Theme = {
     Background = Color3.fromRGB(15, 5, 25),
     Foreground = Color3.fromRGB(25, 10, 40),
@@ -76,7 +76,7 @@ local function CreateRune(parent, position, size)
                 task.wait(0.05)
             end
             for i = 0.9, 0.8, -0.01 do
-                rune.ImageTransparency = i
+                rine.ImageTransparency = i
                 task.wait(0.05)
             end
         end
@@ -151,7 +151,7 @@ function GuiLibrary.new(title, config)
         Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
     })
     
-    -- Main window frame with fantasy styling
+    -- Main window frame
     self.MainFrame = Create("Frame", {
         Name = "MainWindow",
         BackgroundColor3 = Theme.Background,
@@ -163,7 +163,7 @@ function GuiLibrary.new(title, config)
     })
     AddNeonGlow(self.MainFrame)
     
-    -- Add magical runes to background
+    -- Add magical runes
     CreateRune(self.MainFrame, UDim2.new(0.1, 0, 0.1, 0), 50)
     CreateRune(self.MainFrame, UDim2.new(0.8, 0, 0.2, 0), 40)
     CreateRune(self.MainFrame, UDim2.new(0.3, 0, 0.7, 0), 60)
@@ -178,7 +178,7 @@ function GuiLibrary.new(title, config)
     })
     AddNeonGlow(self.TitleBar)
     
-    -- Title text with special styling
+    -- Title text
     self.TitleLabel = Create("TextLabel", {
         Name = "Title",
         BackgroundTransparency = 1,
@@ -218,7 +218,7 @@ function GuiLibrary.new(title, config)
         Parent = self.TitleBar
     })
     
-    -- Tab container (with horizontal scrolling)
+    -- Tab container with horizontal scrolling
     self.TabContainerFrame = Create("Frame", {
         Name = "TabContainerFrame",
         BackgroundTransparency = 1,
@@ -251,7 +251,7 @@ function GuiLibrary.new(title, config)
         Parent = self.TabContainer
     })
     
-    -- Update tab container size when tabs are added
+    -- Update tab container size
     self.TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         self.TabContainer.CanvasSize = UDim2.new(0, self.TabLayout.AbsoluteContentSize.X, 0, 0)
     end)
@@ -383,7 +383,11 @@ function GuiLibrary:AddTab(name)
 
     -- Section creation for this tab
     function tab:CreateSection(name)
-        local section = {}
+        local section = {
+            Name = name,
+            Tab = self,
+            Elements = {}
+        }
         
         section.Frame = Create("Frame", {
             Name = "Section_"..name,
@@ -397,17 +401,19 @@ function GuiLibrary:AddTab(name)
         })
         AddNeonGlow(section.Frame)
         
-        -- Add padding to section
+        -- Section padding
         Create("UIPadding", {
             PaddingLeft = UDim.new(0, 10),
             PaddingRight = UDim.new(0, 10),
+            PaddingTop = UDim.new(0, 5),
+            PaddingBottom = UDim.new(0, 5),
             Parent = section.Frame
         })
         
+        -- Section title
         section.Title = Create("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 5, 0, 5),
             Size = UDim2.new(1, -10, 0, 20),
             Font = Enum.Font.GothamSemibold,
             Text = name,
@@ -417,24 +423,26 @@ function GuiLibrary:AddTab(name)
             Parent = section.Frame
         })
         
+        -- Section content area
         section.Content = Create("Frame", {
             Name = "Content",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 0, 0, 30),
+            Position = UDim2.new(0, 0, 0, 25),
             Size = UDim2.new(1, 0, 0, 0),
             Parent = section.Frame
         })
         
+        -- Section layout
         section.Layout = Create("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 5),
+            Padding = UDim.new(0, 8),
             Parent = section.Content
         })
         
         -- Auto-size section
         section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             section.Content.Size = UDim2.new(1, 0, 0, section.Layout.AbsoluteContentSize.Y)
-            section.Frame.Size = UDim2.new(1, -20, 0, section.Layout.AbsoluteContentSize.Y + 35)
+            section.Frame.Size = UDim2.new(1, -20, 0, section.Layout.AbsoluteContentSize.Y + 30)
             self.Gui:UpdateCanvas(tab)
         end)
         
@@ -442,7 +450,7 @@ function GuiLibrary:AddTab(name)
         function section:AddLabel(text, options)
             options = options or {}
             local label = Create("TextLabel", {
-                Name = "Label",
+                Name = "Label_"..text,
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, -10, 0, options.Height or 20),
                 Font = Enum.Font.Gotham,
@@ -458,40 +466,60 @@ function GuiLibrary:AddTab(name)
             return label
         end
         
-        -- BUTTON ELEMENT
+        -- BUTTON ELEMENT (Fixed and complete implementation)
         function section:AddButton(name, callback)
-            local button = Create("TextButton", {
-                Name = "Button_"..name,
-                BackgroundColor3 = Theme.Foreground,
-                BorderColor3 = Theme.Border,
-                BorderSizePixel = 1,
+            local button = {
+                Name = name,
+                Callback = callback
+            }
+            
+            button.Frame = Create("Frame", {
+                Name = "ButtonFrame_"..name,
+                BackgroundTransparency = 1,
                 Size = UDim2.new(1, -10, 0, 30),
-                Font = Enum.Font.Gotham,
-                Text = name,
-                TextColor3 = Theme.Text,
-                TextSize = 14,
                 LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
             
-            local buttonGlow = AddNeonGlow(button)
+            button.Button = Create("TextButton", {
+                Name = "Button_"..name,
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = name,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                Parent = button.Frame
+            })
+            
+            local buttonGlow = AddNeonGlow(button.Button)
             
             -- Hover effects
-            button.MouseEnter:Connect(function()
-                button.BackgroundColor3 = Theme.ButtonHover
+            button.Button.MouseEnter:Connect(function()
+                button.Button.BackgroundColor3 = Theme.ButtonHover
                 buttonGlow.Color = Theme.Highlight
                 buttonGlow.Thickness = 2
             end)
             
-            button.MouseLeave:Connect(function()
-                button.BackgroundColor3 = Theme.Foreground
+            button.Button.MouseLeave:Connect(function()
+                button.Button.BackgroundColor3 = Theme.Foreground
                 buttonGlow.Color = Theme.Accent
                 buttonGlow.Thickness = 1
             end)
             
-            button.MouseButton1Click:Connect(function()
-                if callback then callback() end
+            button.Button.MouseButton1Click:Connect(function()
+                if button.Callback then button.Callback() end
             end)
+            
+            function button:SetText(newText)
+                self.Button.Text = newText
+            end
+            
+            function button:SetCallback(newCallback)
+                self.Callback = newCallback
+            end
             
             table.insert(self.Elements, button)
             return button
@@ -701,6 +729,14 @@ function GuiLibrary:AddTab(name)
                     input.Callback(input.Box.Text)
                 end
             end)
+            
+            function input:SetText(text)
+                self.Box.Text = text
+            end
+            
+            function input:SetPlaceholder(text)
+                self.Box.PlaceholderText = text
+            end
             
             table.insert(self.Elements, input)
             return input
