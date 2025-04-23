@@ -477,7 +477,7 @@ function GuiLibrary:AddTab(name)
             end)
         end
         
-        -- BUTTON ELEMENT
+        -- BUTTON ELEMENT (Complete implementation)
         function section:AddButton(name, callback)
             if not name then return nil end
             
