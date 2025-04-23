@@ -1,195 +1,205 @@
 local GuiLibrary = {}
 GuiLibrary.__index = GuiLibrary
 
--- Lightweight theme configuration
+-- Enhanced Theme Configuration
 local Theme = {
     Background = Color3.fromRGB(20, 20, 25),
     Foreground = Color3.fromRGB(30, 30, 35),
     Accent = Color3.fromRGB(150, 50, 255),
     Text = Color3.fromRGB(240, 240, 240),
     Border = Color3.fromRGB(50, 50, 60),
-    Highlight = Color3.fromRGB(180, 80, 255)
+    Highlight = Color3.fromRGB(180, 80, 255),
+    TabActive = Color3.fromRGB(60, 60, 70),
+    TabInactive = Color3.fromRGB(40, 40, 50)
 }
 
-local function Create(class, props)
-    local obj = Instance.new(class)
-    for k,v in pairs(props) do
-        if k ~= "Parent" then
-            obj[k] = v
+-- Utility function
+local function Create(class, properties)
+    local instance = Instance.new(class)
+    for property, value in pairs(properties) do
+        if property ~= "Parent" then
+            instance[property] = value
         end
     end
-    obj.Parent = props.Parent
-    return obj
+    if properties.Parent then
+        instance.Parent = properties.Parent
+    end
+    return instance
 end
 
--- Main constructor with auto-placement
+-- Main window with tabs
 function GuiLibrary.new(title)
     local self = setmetatable({}, GuiLibrary)
+    local isMobile = game:GetService("UserInputService").TouchEnabled
     
+    -- Create screen GUI
     self.ScreenGui = Create("ScreenGui", {
-        Name = "ExploitHubGUI",
+        Name = "EnhancedGuiLibrary",
         ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Global
+        ZIndexBehavior = Enum.ZIndexBehavior.Global,
+        Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
     })
     
-    -- Auto-position based on existing GUIs
-    local existingGuis = game:GetService("CoreGui"):GetChildren()
-    local xPos = 0.02 + (#existingGuis * 0.02)
-    
+    -- Main window frame (larger for tabs)
     self.MainFrame = Create("Frame", {
         Name = "MainWindow",
         BackgroundColor3 = Theme.Background,
         BorderColor3 = Theme.Border,
-        Position = UDim2.new(xPos, 0, 0.02, 0),
-        Size = UDim2.new(0, 350, 0, 400),
-        Parent = self.ScreenGui,
-        Active = true
+        BorderSizePixel = 1,
+        Position = isMobile and UDim2.new(0.05, 0, 0.05, 0) or UDim2.new(0.3, 0, 0.2, 0),
+        Size = isMobile and UDim2.new(0.9, 0, 0.9, 0) or UDim2.new(0, 400, 0, 500),
+        Parent = self.ScreenGui
     })
     
-    -- Draggable title bar
+    -- Title bar
     self.TitleBar = Create("Frame", {
         Name = "TitleBar",
         BackgroundColor3 = Theme.Foreground,
-        Size = UDim2.new(1, 0, 0, 25),
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 30),
         Parent = self.MainFrame
     })
     
+    -- Title text
     self.TitleLabel = Create("TextLabel", {
         Name = "Title",
         BackgroundTransparency = 1,
-        Size = UDim2.new(0.7, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = title or "Exploit Hub",
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(0.6, -10, 1, 0),
+        Font = Enum.Font.GothamSemibold,
+        Text = title or "Enhanced GUI",
         TextColor3 = Theme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = self.TitleBar
     })
     
-    -- Close button with better visual feedback
+    -- Close button
     self.CloseButton = Create("TextButton", {
         Name = "CloseButton",
-        BackgroundColor3 = Color3.fromRGB(200, 50, 50),
-        Position = UDim2.new(1, -25, 0, 0),
-        Size = UDim2.new(0, 25, 1, 0),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -30, 0, 0),
+        Size = UDim2.new(0, 30, 1, 0),
+        Font = Enum.Font.GothamBold,
         Text = "X",
         TextColor3 = Theme.Text,
+        TextSize = 14,
         Parent = self.TitleBar
     })
     
-    -- Tab system with dynamic resizing
-    self.TabButtons = Create("Frame", {
-        Name = "TabButtons",
+    -- Minimize button
+    self.MinimizeButton = Create("TextButton", {
+        Name = "MinimizeButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -60, 0, 0),
+        Size = UDim2.new(0, 30, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "_",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        Parent = self.TitleBar
+    })
+    
+    -- Tab container
+    self.TabContainer = Create("Frame", {
+        Name = "TabContainer",
         BackgroundColor3 = Theme.Foreground,
-        Position = UDim2.new(0, 0, 0, 25),
-        Size = UDim2.new(1, 0, 0, 30),
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 40),
         Parent = self.MainFrame
     })
     
+    -- Tab list layout
     Create("UIListLayout", {
+        Name = "TabLayout",
         FillDirection = Enum.FillDirection.Horizontal,
-        Parent = self.TabButtons
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = self.TabContainer
     })
     
+    -- Content frame (below tabs)
     self.ContentFrame = Create("ScrollingFrame", {
         Name = "Content",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 55),
-        Size = UDim2.new(1, 0, 1, -55),
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 70), -- Lower position to account for tabs
+        Size = UDim2.new(1, 0, 1, -70), -- Adjusted height
         CanvasSize = UDim2.new(0, 0, 0, 0),
-        ScrollBarThickness = 3,
+        ScrollBarThickness = 5,
         Parent = self.MainFrame
     })
     
+    -- Content layout
     Create("UIListLayout", {
-        Padding = UDim.new(0, 5),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
         Parent = self.ContentFrame
     })
     
-    -- Make draggable
-    local dragging, dragInput, dragStart, startPos
-    self.TitleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.MainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
+    -- Make window draggable
+    self:Draggable(self.TitleBar, self.MainFrame)
     
-    self.TitleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            self.MainFrame.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-    
+    -- Button functionality
     self.CloseButton.MouseButton1Click:Connect(function()
-        self:Destroy()
+        self.ScreenGui:Destroy()
     end)
     
+    self.MinimizeButton.MouseButton1Click:Connect(function()
+        self.ContentFrame.Visible = not self.ContentFrame.Visible
+        local newHeight = self.ContentFrame.Visible and 500 or 70
+        self.MainFrame.Size = UDim2.new(self.MainFrame.Size.X, UDim.new(0, newHeight))
+    end)
+    
+    -- Tab management
     self.Tabs = {}
     self.CurrentTab = nil
-    
-    -- Auto-update features
-    coroutine.wrap(function()
-        while self.ScreenGui and self.ScreenGui.Parent do
-            self:UpdateAllTabs()
-            wait(1)
-        end
-    end)()
     
     return self
 end
 
--- Dynamic tab system
+-- Add tab creation function
 function GuiLibrary:AddTab(name)
     local tab = {}
     
+    -- Tab button
     tab.Button = Create("TextButton", {
-        Name = name.."Tab",
-        BackgroundColor3 = Theme.Background,
-        Size = UDim2.new(0, 70, 1, 0),
+        Name = "Tab_"..name,
+        BackgroundColor3 = Theme.TabInactive,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 100, 1, 0),
+        Font = Enum.Font.Gotham,
         Text = name,
         TextColor3 = Theme.Text,
-        Parent = self.TabButtons
+        TextSize = 14,
+        LayoutOrder = #self.TabContainer:GetChildren(),
+        Parent = self.TabContainer
     })
     
-    tab.Content = Create("Frame", {
-        Name = name.."Content",
+    -- Tab content frame
+    tab.Content = Create("ScrollingFrame", {
+        Name = "Content_"..name,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
         Visible = false,
         Parent = self.ContentFrame
     })
     
+    -- Content layout
     Create("UIListLayout", {
-        Padding = UDim.new(0, 5),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
         Parent = tab.Content
     })
     
+    -- Tab selection function
     function tab:Select()
         if self.Gui.CurrentTab then
-            self.Gui.CurrentTab.Button.BackgroundColor3 = Theme.Background
+            self.Gui.CurrentTab.Button.BackgroundColor3 = Theme.TabInactive
             self.Gui.CurrentTab.Content.Visible = false
         end
-        self.Button.BackgroundColor3 = Theme.Accent
+        self.Button.BackgroundColor3 = Theme.TabActive
         self.Content.Visible = true
         self.Gui.CurrentTab = self
     end
@@ -197,195 +207,344 @@ function GuiLibrary:AddTab(name)
     tab.Gui = self
     table.insert(self.Tabs, tab)
     
-    tab.Button.MouseButton1Click:Connect(function()
-        tab:Select()
-    end)
-    
+    -- Select first tab by default
     if #self.Tabs == 1 then
         tab:Select()
     end
     
-    -- Section creator with auto-resizing
-    function tab:AddSection(title)
+    -- Click handler
+    tab.Button.MouseButton1Click:Connect(function()
+        tab:Select()
+    end)
+    
+    -- Section creation for this tab
+    function tab:CreateSection(name)
         local section = {}
         
         section.Frame = Create("Frame", {
-            Name = title.."Section",
+            Name = "Section_"..name,
             BackgroundColor3 = Theme.Foreground,
             BorderColor3 = Theme.Border,
+            BorderSizePixel = 1,
             Size = UDim2.new(1, -10, 0, 0),
+            LayoutOrder = #tab.Content:GetChildren(),
             Parent = tab.Content
         })
         
         section.Title = Create("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 20),
-            Font = Enum.Font.GothamBold,
-            Text = title,
+            Position = UDim2.new(0, 5, 0, 5),
+            Size = UDim2.new(1, -10, 0, 20),
+            Font = Enum.Font.GothamSemibold,
+            Text = name,
             TextColor3 = Theme.Accent,
             TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
             Parent = section.Frame
         })
         
         section.Content = Create("Frame", {
             Name = "Content",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 0, 0, 25),
+            Position = UDim2.new(0, 0, 0, 30),
             Size = UDim2.new(1, 0, 0, 0),
             Parent = section.Frame
         })
         
-        local layout = Create("UIListLayout", {
+        section.Layout = Create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = UDim.new(0, 5),
             Parent = section.Content
         })
         
-        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            section.Content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-            section.Frame.Size = UDim2.new(1, -10, 0, layout.AbsoluteContentSize.Y + 30)
-            self.Gui:UpdateAllTabs()
+        -- Auto-size section
+        section.Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            section.Content.Size = UDim2.new(1, 0, 0, section.Layout.AbsoluteContentSize.Y)
+            section.Frame.Size = UDim2.new(1, -10, 0, section.Layout.AbsoluteContentSize.Y + 35)
+            self.Gui:UpdateCanvas(tab)
         end)
         
-        -- Button with hover effects
-        function section:AddButton(text, callback)
-            local btn = Create("TextButton", {
-                Name = text.."Button",
-                BackgroundColor3 = Theme.Background,
-                BorderColor3 = Theme.Border,
-                Size = UDim2.new(1, 0, 0, 30),
+        -- Label element
+        function section:AddLabel(text, options)
+            options = options or {}
+            local label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, options.Height or 20),
+                Font = Enum.Font.Gotham,
                 Text = text,
                 TextColor3 = Theme.Text,
+                TextSize = options.TextSize or 14,
+                TextWrapped = true,
+                TextXAlignment = options.Alignment or Enum.TextXAlignment.Left,
+                LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
-            
-            btn.MouseEnter:Connect(function()
-                btn.BackgroundColor3 = Theme.Highlight
-            end)
-            
-            btn.MouseLeave:Connect(function()
-                btn.BackgroundColor3 = Theme.Background
-            end)
-            
-            btn.MouseButton1Click:Connect(callback)
-            
-            return {
-                UpdateText = function(newText)
-                    btn.Text = newText
-                end,
-                SetCallback = function(newCallback)
-                    btn.MouseButton1Click:Connect(newCallback)
-                end
-            }
+            return label
         end
         
-        -- Toggle with state management
-        function section:AddToggle(text, default, callback)
-            local toggle = {
-                Value = default or false,
-                Update = function(newValue)
-                    toggle.Value = newValue
-                    btn.Text = newValue and "ON" or "OFF"
-                    btn.BackgroundColor3 = newValue and Theme.Accent or Theme.Background
-                end
-            }
-            
-            local btn = Create("TextButton", {
-                Name = text.."Toggle",
-                BackgroundColor3 = toggle.Value and Theme.Accent or Theme.Background,
-                BorderColor3 = Theme.Border,
-                Size = UDim2.new(1, 0, 0, 30),
-                Text = toggle.Value and "ON" or "OFF",
+        -- Paragraph element (multi-line text)
+        function section:AddParagraph(text, options)
+            options = options or {}
+            local paragraph = Create("TextLabel", {
+                Name = "Paragraph",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 0),
+                Font = Enum.Font.Gotham,
+                Text = text,
                 TextColor3 = Theme.Text,
+                TextSize = options.TextSize or 12,
+                TextWrapped = true,
+                TextXAlignment = options.Alignment or Enum.TextXAlignment.Left,
+                AutomaticSize = Enum.AutomaticSize.Y,
+                LayoutOrder = #section.Content:GetChildren(),
+                Parent = section.Content
+            })
+            return paragraph
+        end
+        
+        -- Button element
+        function section:AddButton(name, callback)
+            local button = Create("TextButton", {
+                Name = "Button_"..name,
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(1, -10, 0, 30),
+                Font = Enum.Font.Gotham,
+                Text = name,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
             
-            btn.MouseButton1Click:Connect(function()
-                toggle.Value = not toggle.Value
-                btn.Text = toggle.Value and "ON" or "OFF"
-                btn.BackgroundColor3 = toggle.Value and Theme.Accent or Theme.Background
-                if callback then callback(toggle.Value) end
+            -- Hover effects
+            button.MouseEnter:Connect(function()
+                button.BackgroundColor3 = Theme.Highlight
+            end)
+            
+            button.MouseLeave:Connect(function()
+                button.BackgroundColor3 = Theme.Foreground
+            end)
+            
+            button.MouseButton1Click:Connect(callback)
+            
+            return button
+        end
+        
+        -- Toggle element
+        function section:AddToggle(name, default, callback)
+            local toggle = {}
+            local state = default or false
+            
+            toggle.Frame = Create("Frame", {
+                Name = "Toggle_"..name,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 30),
+                LayoutOrder = #section.Content:GetChildren(),
+                Parent = section.Content
+            })
+            
+            toggle.Label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(0.7, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = name,
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = toggle.Frame
+            })
+            
+            toggle.Button = Create("TextButton", {
+                Name = "ToggleButton",
+                BackgroundColor3 = state and Theme.Accent or Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Position = UDim2.new(0.7, 0, 0.1, 0),
+                Size = UDim2.new(0.3, 0, 0.8, 0),
+                Font = Enum.Font.Gotham,
+                Text = state and "ON" or "OFF",
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                Parent = toggle.Frame
+            })
+            
+            toggle.Button.MouseButton1Click:Connect(function()
+                state = not state
+                toggle.Button.Text = state and "ON" or "OFF"
+                toggle.Button.BackgroundColor3 = state and Theme.Accent or Theme.Foreground
+                if callback then callback(state) end
             end)
             
             return toggle
         end
         
-        -- Dynamic slider
-        function section:AddSlider(text, min, max, default, callback)
-            local slider = {
-                Value = math.clamp(default or min, min, max),
-                Update = function(newValue)
-                    slider.Value = math.clamp(newValue, min, max)
-                    fill.Size = UDim2.new((slider.Value - min)/(max - min), 0, 1, 0)
-                    valueLabel.Text = text..": "..math.floor(slider.Value)
-                end
-            }
+        -- Slider element
+        function section:AddSlider(name, min, max, default, callback)
+    local slider = {}
+    local value = math.clamp(default or min, min, max)
+    local isDragging = false
+    local connection
+    
+    slider.Frame = Create("Frame", {
+        Name = "Slider_"..name,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -10, 0, 50),
+        LayoutOrder = #section.Content:GetChildren(),
+        Parent = section.Content
+    })
+    
+    slider.Label = Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 20),
+        Font = Enum.Font.Gotham,
+        Text = name..": "..value,
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = slider.Frame
+    })
+    
+    slider.Track = Create("Frame", {
+        Name = "Track",
+        BackgroundColor3 = Theme.Foreground,
+        BorderColor3 = Theme.Border,
+        BorderSizePixel = 1,
+        Position = UDim2.new(0, 0, 0, 25),
+        Size = UDim2.new(1, 0, 0, 10),
+        Parent = slider.Frame
+    })
+    
+    slider.Fill = Create("Frame", {
+        Name = "Fill",
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
+        Parent = slider.Track
+    })
+    
+    slider.Button = Create("TextButton", {
+        Name = "SliderButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 25),
+        Size = UDim2.new(1, 0, 0, 10),
+        Text = "",
+        Parent = slider.Frame
+    })
+    
+    local function updateSlider(input)
+        local relativeX
+        if input then
+            -- For touch/mouse movement
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+            relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+        else
+            -- For initial setup
+            relativeX = (value - min)/(max - min)
+        end
+        
+        value = math.clamp(min + (max - min) * relativeX, min, max)
+        local displayValue = math.floor(value * 100)/100 -- Show 2 decimal places
+        slider.Label.Text = name..": "..displayValue
+        slider.Fill.Size = UDim2.new(math.clamp(relativeX, 0, 1), 0, 1, 0)
+        if callback then callback(value) end
+    end
+    
+    local function stopDragging()
+        isDragging = false
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+    end
+    
+    slider.Button.MouseButton1Down:Connect(function()
+        isDragging = true
+        updateSlider(true)
+        connection = game:GetService("RunService").Heartbeat:Connect(function()
+            updateSlider(true)
+        end)
+    end)
+    
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            stopDragging()
+        end
+    end)
+    
+    slider.Frame.AncestryChanged:Connect(function()
+        if not slider.Frame.Parent then
+            stopDragging()
+        end
+    end)
+    
+    function slider:SetValue(newValue)
+        value = math.clamp(newValue, min, max)
+        slider.Label.Text = name..": "..math.floor(value * 100)/100
+        slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
+        if callback then callback(value) end
+    end
+    
+    -- Initialize the slider
+    updateSlider(false)
+    
+    return slider
+end
+        
+        -- Input box element
+        function section:AddInput(name, placeholder, callback)
+            local input = {}
             
-            local frame = Create("Frame", {
-                Name = text.."Slider",
+            input.Frame = Create("Frame", {
+                Name = "Input_"..name,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 50),
+                Size = UDim2.new(1, -10, 0, 30),
+                LayoutOrder = #section.Content:GetChildren(),
                 Parent = section.Content
             })
             
-            local valueLabel = Create("TextLabel", {
-                Name = "Value",
+            input.Label = Create("TextLabel", {
+                Name = "Label",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 20),
-                Text = text..": "..slider.Value,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(0.3, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = name,
                 TextColor3 = Theme.Text,
-                Parent = frame
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = input.Frame
             })
             
-            local track = Create("Frame", {
-                Name = "Track",
-                BackgroundColor3 = Theme.Background,
+            input.Box = Create("TextBox", {
+                Name = "InputBox",
+                BackgroundColor3 = Theme.Foreground,
                 BorderColor3 = Theme.Border,
-                Position = UDim2.new(0, 0, 0, 25),
-                Size = UDim2.new(1, 0, 0, 10),
-                Parent = frame
-            })
-            
-            local fill = Create("Frame", {
-                Name = "Fill",
-                BackgroundColor3 = Theme.Accent,
-                Size = UDim2.new((slider.Value - min)/(max - min), 0, 1, 0),
-                Parent = track
-            })
-            
-            local button = Create("TextButton", {
-                Name = "SliderControl",
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 25),
-                Size = UDim2.new(1, 0, 0, 10),
+                BorderSizePixel = 1,
+                Position = UDim2.new(0.3, 5, 0.1, 0),
+                Size = UDim2.new(0.7, -5, 0.8, 0),
+                Font = Enum.Font.Gotham,
+                PlaceholderText = placeholder or "",
                 Text = "",
-                Parent = frame
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                Parent = input.Frame
             })
             
-            local function update(input)
-                local pos = UDim2.new(
-                    math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1), 
-                    0, 0, 0
-                )
-                slider.Value = math.floor(min + (max - min) * pos.X.Scale)
-                fill.Size = UDim2.new(pos.X.Scale, 0, 1, 0)
-                valueLabel.Text = text..": "..slider.Value
-                if callback then callback(slider.Value) end
-            end
-            
-            button.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    update(input)
+            input.Box.FocusLost:Connect(function(enterPressed)
+                if enterPressed and callback then
+                    callback(input.Box.Text)
                 end
             end)
             
-            button.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement then
-                    update(input)
-                end
-            end)
-            
-            return slider
+            return input
         end
         
         return section
@@ -394,17 +553,15 @@ function GuiLibrary:AddTab(name)
     return tab
 end
 
--- Auto-resize all tabs
-function GuiLibrary:UpdateAllTabs()
-    for _, tab in pairs(self.Tabs) do
-        local totalHeight = 0
-        for _, child in ipairs(tab.Content:GetChildren()) do
-            if child:IsA("Frame") then
-                totalHeight = totalHeight + child.AbsoluteSize.Y + 5
-            end
+-- Update canvas size for specific tab
+function GuiLibrary:UpdateCanvas(tab)
+    local totalHeight = 0
+    for _, child in ipairs(tab.Content:GetChildren()) do
+        if child:IsA("Frame") then
+            totalHeight += child.AbsoluteSize.Y + 10
         end
-        tab.Content.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
     end
+    tab.Content.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
 end
 
 -- Toggle visibility
@@ -412,12 +569,9 @@ function GuiLibrary:Toggle()
     self.ScreenGui.Enabled = not self.ScreenGui.Enabled
 end
 
--- Clean destruction
+-- Destroy GUI
 function GuiLibrary:Destroy()
-    if self.ScreenGui then
-        self.ScreenGui:Destroy()
-        self.ScreenGui = nil
-    end
+    self.ScreenGui:Destroy()
 end
 
 return GuiLibrary
