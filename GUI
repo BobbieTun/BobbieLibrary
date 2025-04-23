@@ -130,7 +130,7 @@ end
 
 function GuiLibrary.new(title, config)
     config = config or {}
-    local defaultKeybind = Enum.KeyCode.RightControl
+    local defaultKeybind = Enum.KeyCode.LeftControl
     local keybind = config.ToggleKeybind or defaultKeybind
     
     local self = setmetatable({}, GuiLibrary)
@@ -144,7 +144,7 @@ function GuiLibrary.new(title, config)
     
     -- Create screen GUI
     self.ScreenGui = Create("ScreenGui", {
-        Name = "ArcaneGUI",
+        Name = "Bobbie",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
         Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
