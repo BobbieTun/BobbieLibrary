@@ -313,9 +313,10 @@ function GuiLibrary:CreateSection(name)
 
 function section:AddSlider(name, min, max, default, callback)
     local slider = {}
-    local value = default or min
-    local connection = nil
+    local value = math.clamp(default or min, min, max)
+    local isSliding = false
     
+    -- Create slider frame
     slider.Frame = Create("Frame", {
         Name = "Slider_"..name,
         BackgroundTransparency = 1,
@@ -323,20 +324,22 @@ function section:AddSlider(name, min, max, default, callback)
         LayoutOrder = #section.Content:GetChildren(),
         Parent = section.Content
     })
-    
+
+    -- Value display label
     slider.Label = Create("TextLabel", {
         Name = "Label",
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 0, 20),
         Font = Enum.Font.Gotham,
-        Text = name..": "..value,
+        Text = string.format("%s: %.1f", name, value),
         TextColor3 = Theme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = slider.Frame
     })
-    
+
+    -- Track background
     slider.Track = Create("Frame", {
         Name = "Track",
         BackgroundColor3 = Theme.Foreground,
@@ -346,7 +349,8 @@ function section:AddSlider(name, min, max, default, callback)
         Size = UDim2.new(1, 0, 0, 10),
         Parent = slider.Frame
     })
-    
+
+    -- Fill indicator
     slider.Fill = Create("Frame", {
         Name = "Fill",
         BackgroundColor3 = Theme.Accent,
@@ -354,7 +358,8 @@ function section:AddSlider(name, min, max, default, callback)
         Size = UDim2.new((value - min)/(max - min), 0, 1, 0),
         Parent = slider.Track
     })
-    
+
+    -- Interactive button
     slider.Button = Create("TextButton", {
         Name = "SliderButton",
         BackgroundTransparency = 1,
@@ -363,46 +368,44 @@ function section:AddSlider(name, min, max, default, callback)
         Text = "",
         Parent = slider.Frame
     })
-    
-    local function updateSlider()
-        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
-        value = math.floor(math.clamp(min + (max - min) * relativeX, min, max) * 100)/100
-        slider.Label.Text = name..": "..value
-        slider.Fill.Size = UDim2.new(math.clamp((value - min)/(max - min), 0, 1, 0), 0, 1, 0)
+
+    -- Update slider value and appearance
+    local function updateValue(newValue)
+        value = math.clamp(newValue, min, max)
+        slider.Label.Text = string.format("%s: %.1f", name, value)
+        slider.Fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
         if callback then callback(value) end
     end
-    
-    local function disconnect()
-        if connection then
-            connection:Disconnect()
-            connection = nil
+
+    -- Handle mouse movement while sliding
+    local function onInputChanged(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and isSliding then
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+            local relativeX = (mouse.X - slider.Track.AbsolutePosition.X)/slider.Track.AbsoluteSize.X
+            updateValue(min + (max - min) * relativeX)
         end
     end
-    
+
+    -- Start sliding
     slider.Button.MouseButton1Down:Connect(function()
-        updateSlider()
-        connection = game:GetService("UserInputService").InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                updateSlider()
-            end
-        end)
-        
-        -- Disconnect when mouse button is released
-        local releaseConnection
-        releaseConnection = game:GetService("UserInputService").MouseButton1Up:Connect(function()
-            disconnect()
-            releaseConnection:Disconnect()
-        end)
+        isSliding = true
+        game:GetService("UserInputService").InputChanged:Connect(onInputChanged)
     end)
-    
-    -- Cleanup when GUI is destroyed
-    slider.Button.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            disconnect()
+
+    -- Stop sliding on mouse release
+    game:GetService("UserInputService").MouseButton1Up:Connect(function()
+        if isSliding then
+            isSliding = false
         end
     end)
-    
+
+    -- Clean up if slider is removed
+    slider.Frame.AncestryChanged:Connect(function()
+        if not slider.Frame.Parent then
+            isSliding = false
+        end
+    end)
+
     return slider
 end
     
