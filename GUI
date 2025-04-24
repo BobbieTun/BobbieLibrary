@@ -1038,7 +1038,31 @@ function section:AddDropdown(text, options)
         end
     end
 
-    -- Initialize
+  function dropdown:SetValue(newValue)
+        if self.Multi then
+            -- For multi-select dropdowns
+            if type(newValue) == "table" then
+                self.Value = {}
+                for value, isSelected in pairs(newValue) do
+                    if table.find(self.Values, value) then
+                        self.Value[value] = isSelected
+                    end
+                end
+            end
+        else
+            -- For single-select dropdowns
+            if newValue == nil or table.find(self.Values, newValue) then
+                self.Value = newValue
+            end
+        end
+        
+        -- Update the visual display
+        self:BuildOptions()  -- This will update all option highlights
+        self:UpdateDisplay() -- This updates the displayed text
+        self.Callback(self.Value) -- Trigger the callback if needed
+    end
+
+    -- Initialize dropdown (button click handler, etc.)
     dropdown.Button.MouseButton1Click:Connect(function()
         dropdown:Toggle()
     end)
