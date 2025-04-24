@@ -500,7 +500,7 @@ function GuiLibrary:AddTab(name)
             return button
         end
         
-        -- Toggle element (fixed implementation)
+        -- Toggle element
         function section:AddToggle(text, default, callback)
             local toggle = {
                 Value = default or false,
@@ -597,7 +597,7 @@ function GuiLibrary:AddTab(name)
             return toggle
         end
         
-        -- Slider element
+        -- Slider element (fixed implementation)
         function section:AddSlider(text, min, max, default, callback)
             local slider = {
                 Value = default or min,
@@ -687,7 +687,12 @@ function GuiLibrary:AddTab(name)
             local dragging = false
             
             local function updateValue(input)
-                local x = (input.Position.X - sliderTrack.AbsolutePosition.X) / sliderTrack.AbsoluteSize.X
+                local trackAbsoluteX = sliderTrack.AbsolutePosition.X
+                local trackAbsoluteWidth = sliderTrack.AbsoluteSize.X
+                local mouseX = input.Position.X
+                
+                -- Calculate percentage
+                local x = (mouseX - trackAbsoluteX) / trackAbsoluteWidth
                 x = math.clamp(x, 0, 1)
                 local value = math.floor(min + (max - min) * x)
                 
@@ -714,8 +719,10 @@ function GuiLibrary:AddTab(name)
                 end
             end)
             
-            sliderTrack.MouseButton1Down:Connect(function(input)
-                updateValue(input)
+            sliderTrack.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    updateValue(input)
+                end
             end)
             
             -- Function to set value programmatically
@@ -730,376 +737,374 @@ function GuiLibrary:AddTab(name)
         end
         
         -- Dropdown element
-function section:AddDropdown(text, options)
-    options = options or {}
-    local dropdown = {
-        Name = text,
-        Values = options.Values or {},
-        Default = options.Default,
-        Multi = options.Multi or false,
-        Callback = options.Callback or function() end,
-        AllowNull = options.AllowNull or false,
-        Value = options.Multi and {} or nil
-    }
+        function section:AddDropdown(text, options)
+            options = options or {}
+            local dropdown = {
+                Name = text,
+                Values = options.Values or {},
+                Default = options.Default,
+                Multi = options.Multi or false,
+                Callback = options.Callback or function() end,
+                AllowNull = options.AllowNull or false,
+                Value = options.Multi and {} or nil
+            }
 
-    -- Main dropdown frame
-    dropdown.Frame = Create("Frame", {
-        Name = "DropdownFrame",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -10, 0, 32),
-        Parent = self.Content
-    })
+            -- Main dropdown frame
+            dropdown.Frame = Create("Frame", {
+                Name = "DropdownFrame",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 32),
+                Parent = self.Content
+            })
 
-    -- Dropdown button
-    dropdown.Button = Create("TextButton", {
-        Name = "DropdownButton",
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        AutoButtonColor = false,
-        Parent = dropdown.Frame
-    })
-    AddNeonGlow(dropdown.Button)
-
-    -- Dropdown label
-    dropdown.Label = Create("TextLabel", {
-        Name = "Label",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(0.8, -10, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = text,
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = dropdown.Button
-    })
-
-    -- Value display
-    dropdown.ValueDisplay = Create("TextLabel", {
-        Name = "ValueDisplay",
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.8, 0, 0, 0),
-        Size = UDim2.new(0.2, -30, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = dropdown.Default or (dropdown.Multi and "None" or "Select"),
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        Parent = dropdown.Button
-    })
-
-    -- Dropdown icon (chevron)
-    dropdown.Icon = Create("ImageLabel", {
-        Name = "Icon",
-        Image = "rbxassetid://3926305904",
-        ImageRectOffset = Vector2.new(284, 4),
-        ImageRectSize = Vector2.new(24, 24),
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new(1, -20, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundTransparency = 1,
-        ImageColor3 = Theme.Text,
-        Parent = dropdown.Button
-    })
-
-    -- Dropdown list frame (positioned absolutely)
-    dropdown.ListFrame = Create("Frame", {
-        Name = "DropdownList",
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Position = UDim2.new(0, 0, 0, 35),
-        Size = UDim2.new(1, 0, 0, 0),
-        ClipsDescendants = true,
-        Visible = false,
-        Parent = dropdown.Frame
-    })
-    AddNeonGlow(dropdown.ListFrame)
-
-    -- List layout
-    dropdown.ListLayout = Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
-        Parent = dropdown.ListFrame
-    })
-
-    -- Update display text based on current value(s)
-    function dropdown:UpdateDisplay()
-        if self.Multi then
-            local selected = {}
-            for value, isSelected in pairs(self.Value) do
-                if isSelected then
-                    table.insert(selected, value)
-                end
-            end
-            if #selected > 0 then
-                self.ValueDisplay.Text = table.concat(selected, ", ")
-            else
-                self.ValueDisplay.Text = "None"
-            end
-        else
-            self.ValueDisplay.Text = self.Value or "Select"
-        end
-    end
-
-    -- Build option buttons
-    function dropdown:BuildOptions()
-        -- Clear existing options
-        for _, child in ipairs(self.ListFrame:GetChildren()) do
-            if child:IsA("TextButton") then
-                child:Destroy()
-            end
-        end
-
-        -- Create new options
-        for _, value in ipairs(self.Values) do
-            local option = Create("TextButton", {
-                Name = "Option_"..value,
+            -- Dropdown button
+            dropdown.Button = Create("TextButton", {
+                Name = "DropdownButton",
                 BackgroundColor3 = Theme.Foreground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 28),
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Text = "",
+                AutoButtonColor = false,
+                Parent = dropdown.Frame
+            })
+            AddNeonGlow(dropdown.Button)
+
+            -- Dropdown label
+            dropdown.Label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 10, 0, 0),
+                Size = UDim2.new(0.8, -10, 1, 0),
                 Font = Enum.Font.Gotham,
-                Text = value,
+                Text = text,
                 TextColor3 = Theme.Text,
                 TextSize = 14,
-                AutoButtonColor = false,
-                Parent = self.ListFrame
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = dropdown.Button
+            })
+
+            -- Value display
+            dropdown.ValueDisplay = Create("TextLabel", {
+                Name = "ValueDisplay",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0.8, 0, 0, 0),
+                Size = UDim2.new(0.2, -30, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = dropdown.Default or (dropdown.Multi and "None" or "Select"),
+                TextColor3 = Theme.Text,
+                TextSize = 14,
+                TextXAlignment = Enum.TextXAlignment.Right,
+                Parent = dropdown.Button
+            })
+
+            -- Dropdown icon (chevron)
+            dropdown.Icon = Create("ImageLabel", {
+                Name = "Icon",
+                Image = "rbxassetid://3926305904",
+                ImageRectOffset = Vector2.new(284, 4),
+                ImageRectSize = Vector2.new(24, 24),
+                Size = UDim2.new(0, 16, 0, 16),
+                Position = UDim2.new(1, -20, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundTransparency = 1,
+                ImageColor3 = Theme.Text,
+                Parent = dropdown.Button
+            })
+
+            -- Dropdown list frame (positioned absolutely)
+            dropdown.ListFrame = Create("Frame", {
+                Name = "DropdownList",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Position = UDim2.new(0, 0, 0, 35),
+                Size = UDim2.new(1, 0, 0, 0),
+                ClipsDescendants = true,
+                Visible = false,
+                Parent = dropdown.Frame
+            })
+            AddNeonGlow(dropdown.ListFrame)
+
+            -- List layout
+            dropdown.ListLayout = Create("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 5),
+                Parent = dropdown.ListFrame
+            })
+
+            -- Update display text based on current value(s)
+            function dropdown:UpdateDisplay()
+                if self.Multi then
+                    local selected = {}
+                    for value, isSelected in pairs(self.Value) do
+                        if isSelected then
+                            table.insert(selected, value)
+                        end
+                    end
+                    if #selected > 0 then
+                        self.ValueDisplay.Text = table.concat(selected, ", ")
+                    else
+                        self.ValueDisplay.Text = "None"
+                    end
+                else
+                    self.ValueDisplay.Text = self.Value or "Select"
+                end
+            end
+
+            -- Build option buttons
+            function dropdown:BuildOptions()
+                -- Clear existing options
+                for _, child in ipairs(self.ListFrame:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child:Destroy()
+                    end
+                end
+
+                -- Create new options
+                for _, value in ipairs(self.Values) do
+                    local option = Create("TextButton", {
+                        Name = "Option_"..value,
+                        BackgroundColor3 = Theme.Foreground,
+                        BorderSizePixel = 0,
+                        Size = UDim2.new(1, -10, 0, 28),
+                        Font = Enum.Font.Gotham,
+                        Text = value,
+                        TextColor3 = Theme.Text,
+                        TextSize = 14,
+                        AutoButtonColor = false,
+                        Parent = self.ListFrame
+                    })
+
+                    -- Hover effects
+                    option.MouseEnter:Connect(function()
+                        game:GetService("TweenService"):Create(
+                            option,
+                            TweenInfo.new(0.1),
+                            {BackgroundColor3 = Theme.ButtonHover}
+                        ):Play()
+                    end)
+
+                    option.MouseLeave:Connect(function()
+                        game:GetService("TweenService"):Create(
+                            option,
+                            TweenInfo.new(0.1),
+                            {BackgroundColor3 = Theme.Foreground}
+                        ):Play()
+                    end)
+
+                    -- Selection logic
+                    option.MouseButton1Click:Connect(function()
+                        if self.Multi then
+                            self.Value[value] = not self.Value[value]
+                        else
+                            if self.Value == value and self.AllowNull then
+                                self.Value = nil
+                            else
+                                self.Value = value
+                            end
+                            self:Close()
+                        end
+                        self:UpdateDisplay()
+                        self.Callback(self.Value)
+                    end)
+                end
+
+                -- Update list size
+                task.wait()
+                local contentHeight = self.ListLayout.AbsoluteContentSize.Y
+                self.ListFrame.Size = UDim2.new(1, 0, 0, math.min(contentHeight, 200))
+            end
+
+            -- Open dropdown
+            function dropdown:Open()
+                if self.ListFrame.Visible then return end
+                
+                -- Position the list frame
+                local buttonPos = self.Button.AbsolutePosition
+                local framePos = self.Frame.AbsolutePosition
+                local relativeX = buttonPos.X - framePos.X
+                local relativeY = buttonPos.Y - framePos.Y + self.Button.AbsoluteSize.Y + 5
+                
+                self.ListFrame.Position = UDim2.new(0, relativeX, 0, relativeY)
+                self.ListFrame.Visible = true
+                
+                -- Rotate chevron icon
+                game:GetService("TweenService"):Create(
+                    self.Icon,
+                    TweenInfo.new(0.2),
+                    {Rotation = 180}
+                ):Play()
+            end
+
+            -- Close dropdown
+            function dropdown:Close()
+                if not self.ListFrame.Visible then return end
+                self.ListFrame.Visible = false
+                
+                -- Rotate chevron icon back
+                game:GetService("TweenService"):Create(
+                    self.Icon,
+                    TweenInfo.new(0.2),
+                    {Rotation = 0}
+                ):Play()
+            end
+
+            -- Toggle dropdown visibility
+            function dropdown:Toggle()
+                if self.ListFrame.Visible then
+                    self:Close()
+                else
+                    self:Open()
+                end
+            end
+
+            -- Initialize dropdown
+            function dropdown:SetValues(newValues)
+                self.Values = newValues or {}
+                if self.Multi then
+                    self.Value = {}
+                else
+                    self.Value = nil
+                end
+                self:BuildOptions()
+                self:UpdateDisplay()
+            end
+
+            -- Set value programmatically
+            function dropdown:SetValue(value)
+                if self.Multi then
+                    if type(value) == "table" then
+                        self.Value = {}
+                        for _, v in ipairs(value) do
+                            self.Value[v] = true
+                        end
+                    end
+                else
+                    self.Value = value
+                end
+                self:UpdateDisplay()
+            end
+
+            -- Event connections
+            dropdown.Button.MouseButton1Click:Connect(function()
+                dropdown:Toggle()
+            end)
+
+            -- Close when clicking outside
+            game:GetService("UserInputService").InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 and dropdown.ListFrame.Visible then
+                    if not dropdown.Button:IsDescendantOf(input:GetMouseTarget()) and 
+                       not dropdown.ListFrame:IsDescendantOf(input:GetMouseTarget()) then
+                        dropdown:Close()
+                    end
+                end
+            end)
+
+            -- Initialize
+            dropdown:BuildOptions()
+            dropdown:UpdateDisplay()
+
+            return dropdown
+        end
+        
+        -- Text input element
+        function section:AddInput(options)
+            options = options or {}
+            local input = {
+                Placeholder = options.Placeholder or "Enter text...",
+                Default = options.Default or "",
+                Numeric = options.Numeric or false,
+                Callback = options.Callback or function() end,
+                Value = options.Default or ""
+            }
+
+            -- Main input frame
+            input.Frame = Create("Frame", {
+                Name = "InputFrame",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -10, 0, 32),
+                Parent = self.Content
+            })
+
+            -- Text box
+            input.TextBox = Create("TextBox", {
+                Name = "InputBox",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Font = Enum.Font.Gotham,
+                Text = input.Default,
+                PlaceholderText = input.Placeholder,
+                TextColor3 = Theme.Text,
+                PlaceholderColor3 = Color3.fromRGB(180, 180, 180),
+                TextSize = 14,
+                ClearTextOnFocus = false,
+                Parent = input.Frame
+            })
+            AddNeonGlow(input.TextBox)
+
+            -- Add padding
+            Create("UIPadding", {
+                PaddingLeft = UDim.new(0, 10),
+                PaddingRight = UDim.new(0, 10),
+                Parent = input.TextBox
             })
 
             -- Hover effects
-            option.MouseEnter:Connect(function()
+            input.TextBox.MouseEnter:Connect(function()
                 game:GetService("TweenService"):Create(
-                    option,
+                    input.TextBox,
                     TweenInfo.new(0.1),
                     {BackgroundColor3 = Theme.ButtonHover}
                 ):Play()
             end)
 
-            option.MouseLeave:Connect(function()
+            input.TextBox.MouseLeave:Connect(function()
                 game:GetService("TweenService"):Create(
-                    option,
+                    input.TextBox,
                     TweenInfo.new(0.1),
                     {BackgroundColor3 = Theme.Foreground}
                 ):Play()
             end)
 
-            -- Selection logic
-            option.MouseButton1Click:Connect(function()
-                if self.Multi then
-                    self.Value[value] = not self.Value[value]
-                else
-                    if self.Value == value and self.AllowNull then
-                        self.Value = nil
-                    else
-                        self.Value = value
+            -- Text validation for numeric input
+            if input.Numeric then
+                input.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+                    local text = input.TextBox.Text
+                    if text:match("[^%d%.%-]") then -- Allow digits, decimal point, and minus
+                        input.TextBox.Text = text:gsub("[^%d%.%-]", "")
                     end
-                    self:Close()
-                end
-                self:UpdateDisplay()
-                self.Callback(self.Value)
+                end)
+            end
+
+            -- Focus lost event
+            input.TextBox.FocusLost:Connect(function(enterPressed)
+                input.Value = input.TextBox.Text
+                input.Callback(input.Value, enterPressed)
             end)
-        end
 
-        -- Update list size
-        task.wait()
-        local contentHeight = self.ListLayout.AbsoluteContentSize.Y
-        self.ListFrame.Size = UDim2.new(1, 0, 0, math.min(contentHeight, 200))
-    end
-
-    -- Open dropdown
-    function dropdown:Open()
-        if self.ListFrame.Visible then return end
-        
-        -- Position the list frame
-        local buttonPos = self.Button.AbsolutePosition
-        local framePos = self.Frame.AbsolutePosition
-        local relativeX = buttonPos.X - framePos.X
-        local relativeY = buttonPos.Y - framePos.Y + self.Button.AbsoluteSize.Y + 5
-        
-        self.ListFrame.Position = UDim2.new(0, relativeX, 0, relativeY)
-        self.ListFrame.Visible = true
-        
-        -- Rotate chevron icon
-        game:GetService("TweenService"):Create(
-            self.Icon,
-            TweenInfo.new(0.2),
-            {Rotation = 180}
-        ):Play()
-    end
-
-    -- Close dropdown
-    function dropdown:Close()
-        if not self.ListFrame.Visible then return end
-        self.ListFrame.Visible = false
-        
-        -- Rotate chevron icon back
-        game:GetService("TweenService"):Create(
-            self.Icon,
-            TweenInfo.new(0.2),
-            {Rotation = 0}
-        ):Play()
-    end
-
-    -- Toggle dropdown visibility
-    function dropdown:Toggle()
-        if self.ListFrame.Visible then
-            self:Close()
-        else
-            self:Open()
-        end
-    end
-
-    -- Initialize dropdown
-    function dropdown:SetValues(newValues)
-        self.Values = newValues or {}
-        if self.Multi then
-            self.Value = {}
-        else
-            self.Value = nil
-        end
-        self:BuildOptions()
-        self:UpdateDisplay()
-    end
-
-    -- Set value programmatically
-    function dropdown:SetValue(value)
-        if self.Multi then
-            if type(value) == "table" then
-                self.Value = {}
-                for _, v in ipairs(value) do
-                    self.Value[v] = true
-                end
+            -- Set value programmatically
+            function input:SetValue(value)
+                input.Value = tostring(value)
+                input.TextBox.Text = input.Value
             end
-        else
-            self.Value = value
-        end
-        self:UpdateDisplay()
-    end
 
-    -- Event connections
-    dropdown.Button.MouseButton1Click:Connect(function()
-        dropdown:Toggle()
-    end)
-
-    -- Close when clicking outside
-    game:GetService("UserInputService").InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dropdown.ListFrame.Visible then
-            if not dropdown.Button:IsDescendantOf(input:GetMouseTarget()) and 
-               not dropdown.ListFrame:IsDescendantOf(input:GetMouseTarget()) then
-                dropdown:Close()
+            -- Clear input
+            function input:Clear()
+                input.Value = ""
+                input.TextBox.Text = ""
             end
+
+            return input
         end
-    end)
 
-    -- Initialize
-    dropdown:BuildOptions()
-    dropdown:UpdateDisplay()
-
-    return dropdown
-end
-
-
-        
-        -- Text input element
-function section:AddInput(options)
-    options = options or {}
-    local input = {
-        Placeholder = options.Placeholder or "Enter text...",
-        Default = options.Default or "",
-        Numeric = options.Numeric or false,
-        Callback = options.Callback or function() end,
-        Value = options.Default or ""
-    }
-
-    -- Main input frame
-    input.Frame = Create("Frame", {
-        Name = "InputFrame",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -10, 0, 32),
-        Parent = self.Content
-    })
-
-    -- Text box
-    input.TextBox = Create("TextBox", {
-        Name = "InputBox",
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = input.Default,
-        PlaceholderText = input.Placeholder,
-        TextColor3 = Theme.Text,
-        PlaceholderColor3 = Color3.fromRGB(180, 180, 180),
-        TextSize = 14,
-        ClearTextOnFocus = false,
-        Parent = input.Frame
-    })
-    AddNeonGlow(input.TextBox)
-
-    -- Add padding
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
-        Parent = input.TextBox
-    })
-
-    -- Hover effects
-    input.TextBox.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(
-            input.TextBox,
-            TweenInfo.new(0.1),
-            {BackgroundColor3 = Theme.ButtonHover}
-        ):Play()
-    end)
-
-    input.TextBox.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(
-            input.TextBox,
-            TweenInfo.new(0.1),
-            {BackgroundColor3 = Theme.Foreground}
-        ):Play()
-    end)
-
-    -- Text validation for numeric input
-    if input.Numeric then
-        input.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
-            local text = input.TextBox.Text
-            if text:match("[^%d%.%-]") then -- Allow digits, decimal point, and minus
-                input.TextBox.Text = text:gsub("[^%d%.%-]", "")
-            end
-        end)
-    end
-
-    -- Focus lost event
-    input.TextBox.FocusLost:Connect(function(enterPressed)
-        input.Value = input.TextBox.Text
-        input.Callback(input.Value, enterPressed)
-    end)
-
-    -- Set value programmatically
-    function input:SetValue(value)
-        input.Value = tostring(value)
-        input.TextBox.Text = input.Value
-    end
-
-    -- Clear input
-    function input:Clear()
-        input.Value = ""
-        input.TextBox.Text = ""
-    end
-
-    return input
-end
         return section
     end
-    
+
     return tab
 end
-
 
 -- ====== GUI MANAGEMENT FUNCTIONS ======
 function GuiLibrary:UpdateCanvas(tab)
