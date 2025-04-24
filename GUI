@@ -749,22 +749,22 @@ function section:AddDropdown(text, options)
         Value = options.Multi and {} or nil
     }
 
-    -- Color scheme (light gray/purple/lilac)
+    -- Color scheme
     local dropdownColors = {
-        Background = Color3.fromRGB(240, 240, 240),
-        Border = Color3.fromRGB(180, 160, 220),
-        Highlight = Color3.fromRGB(230, 220, 250),
-        Text = Color3.fromRGB(80, 60, 120),
-        Accent = Color3.fromRGB(150, 120, 200)
+        Background = Color3.fromRGB(240, 240, 240),  -- Light gray
+        Border = Color3.fromRGB(180, 160, 220),      -- Soft purple
+        Highlight = Color3.fromRGB(230, 220, 250),   -- Light lilac
+        Text = Color3.fromRGB(80, 60, 120),          -- Dark purple
+        Accent = Color3.fromRGB(150, 120, 200)       -- Medium purple
     }
 
-    -- Main dropdown frame (HIGH ZINDEX)
+    -- Main dropdown frame (high ZIndex)
     dropdown.Frame = Create("Frame", {
         Name = "DropdownFrame",
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -10, 0, 32),
         Parent = self.Content,
-        ZIndex = 50  -- High z-index to stay above other elements
+        ZIndex = 20  -- Higher than other elements
     })
 
     -- Dropdown button
@@ -777,15 +777,14 @@ function section:AddDropdown(text, options)
         Text = "",
         AutoButtonColor = false,
         Parent = dropdown.Frame,
-        ZIndex = 51  -- Higher than frame
+        ZIndex = 21  -- Higher than frame
     })
 
-    -- Add glow effect
+    -- Add glow effect (no ZIndex on UIStroke)
     local buttonGlow = Instance.new("UIStroke", dropdown.Button)
     buttonGlow.Color = dropdownColors.Accent
     buttonGlow.Thickness = 1
     buttonGlow.Transparency = 0.7
-    buttonGlow.ZIndex = 51
 
     -- Dropdown label
     dropdown.Label = Create("TextLabel", {
@@ -799,10 +798,10 @@ function section:AddDropdown(text, options)
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = dropdown.Button,
-        ZIndex = 52  -- Higher than button
+        ZIndex = 22
     })
 
-    -- Value display (improved for multi-select)
+    -- Value display with improved multi-select handling
     dropdown.ValueDisplay = Create("TextLabel", {
         Name = "ValueDisplay",
         BackgroundTransparency = 1,
@@ -814,8 +813,8 @@ function section:AddDropdown(text, options)
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = dropdown.Button,
-        ZIndex = 52,
-        ClipsDescendants = true  -- Prevent text overflow
+        ZIndex = 22,
+        ClipsDescendants = true
     })
 
     -- Chevron icon
@@ -830,10 +829,10 @@ function section:AddDropdown(text, options)
         BackgroundTransparency = 1,
         ImageColor3 = dropdownColors.Accent,
         Parent = dropdown.Button,
-        ZIndex = 52
+        ZIndex = 22
     })
 
-    -- Dropdown list frame (VERY HIGH ZINDEX)
+    -- Dropdown list frame (very high ZIndex)
     dropdown.ListFrame = Create("ScrollingFrame", {
         Name = "DropdownList",
         BackgroundColor3 = dropdownColors.Background,
@@ -846,16 +845,15 @@ function section:AddDropdown(text, options)
         ScrollBarImageColor3 = dropdownColors.Accent,
         ClipsDescendants = true,
         Visible = false,
-        Parent = dropdown.Frame,
-        ZIndex = 100  -- Highest z-index to ensure it's on top
+        Parent = self.Content,  -- Changed parent to content to ensure proper layering
+        ZIndex = 50  -- Highest in the GUI
     })
 
-    -- Add glow to list frame
+    -- Add glow to list frame (no ZIndex on UIStroke)
     local listGlow = Instance.new("UIStroke", dropdown.ListFrame)
     listGlow.Color = dropdownColors.Accent
     listGlow.Thickness = 1
     listGlow.Transparency = 0.7
-    listGlow.ZIndex = 100
 
     -- List layout
     dropdown.ListLayout = Create("UIListLayout", {
@@ -873,7 +871,7 @@ function section:AddDropdown(text, options)
         Parent = dropdown.ListFrame
     })
 
-    -- Improved display update (handles multi-select better)
+    -- Improved display update
     function dropdown:UpdateDisplay()
         if self.Multi then
             local selected = {}
@@ -882,11 +880,10 @@ function section:AddDropdown(text, options)
             end
             
             if #selected > 0 then
-                -- Show first 2 items + count if more
                 if #selected <= 2 then
                     self.ValueDisplay.Text = table.concat(selected, ", ")
                 else
-                    self.ValueDisplay.Text = selected[1]..", "..selected[2].." (+"..(#selected-2)..")"
+                    self.ValueDisplay.Text = string.format("%s, %s (+%d)", selected[1], selected[2], #selected-2)
                 end
             else
                 self.ValueDisplay.Text = "None"
@@ -896,7 +893,7 @@ function section:AddDropdown(text, options)
         end
     end
 
-    -- Build options with proper z-index
+    -- Build options with proper layering
     function dropdown:BuildOptions()
         -- Clear existing options
         for _, child in ipairs(self.ListFrame:GetChildren()) do
@@ -917,15 +914,14 @@ function section:AddDropdown(text, options)
                 TextSize = 14,
                 AutoButtonColor = false,
                 Parent = self.ListFrame,
-                ZIndex = 101  -- Higher than list frame
+                ZIndex = 51  -- Higher than list frame
             })
 
-            -- Add glow to option
+            -- Add glow to option (no ZIndex on UIStroke)
             local optionGlow = Instance.new("UIStroke", option)
             optionGlow.Color = dropdownColors.Accent
             optionGlow.Thickness = 0.8
             optionGlow.Transparency = 0.8
-            optionGlow.ZIndex = 101
 
             -- Hover effects
             option.MouseEnter:Connect(function()
@@ -958,7 +954,9 @@ function section:AddDropdown(text, options)
                         local optValue = opt.Text
                         local isSelected = self.Multi and self.Value[optValue] or self.Value == optValue
                         opt.BackgroundColor3 = isSelected and dropdownColors.Highlight or dropdownColors.Background
-                        opt.UIStroke.Transparency = isSelected and 0.5 or 0.8
+                        if opt:FindFirstChild("UIStroke") then
+                            opt.UIStroke.Transparency = isSelected and 0.5 or 0.8
+                        end
                     end
                 end
                 
@@ -979,10 +977,68 @@ function section:AddDropdown(text, options)
         self.ListFrame.CanvasSize = UDim2.new(0, 0, 0, self.ListLayout.AbsoluteContentSize.Y)
     end
 
-    -- Open/Close/Toggle functions remain the same as previous working version
-    -- [Previous working implementation here...]
+    -- Open dropdown
+    function dropdown:Open()
+        if self.ListFrame.Visible then return end
+        
+        -- Bring to front
+        self.ListFrame.ZIndex = 50
+        self.ListFrame.Visible = true
+        
+        -- Animate icon
+        if self.Icon then
+            game:GetService("TweenService"):Create(
+                self.Icon,
+                TweenInfo.new(0.2),
+                {Rotation = 180}
+            ):Play()
+        end
+        
+        -- Click outside detection
+        dropdown.ClickDetector = game:GetService("UserInputService").InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local mouseTarget = input.UserInputState == Enum.UserInputState.Begin and 
+                    game:GetService("Players").LocalPlayer:GetMouse().Target
+                
+                if mouseTarget and not (self.Frame:IsAncestorOf(mouseTarget) or 
+                   self.ListFrame:IsAncestorOf(mouseTarget)) then
+                    self:Close()
+                end
+            end
+        end)
+    end
 
-    -- Initialize dropdown
+    -- Close dropdown
+    function dropdown:Close()
+        if not self.ListFrame.Visible then return end
+        self.ListFrame.Visible = false
+        
+        -- Animate icon
+        if self.Icon then
+            game:GetService("TweenService"):Create(
+                self.Icon,
+                TweenInfo.new(0.2),
+                {Rotation = 0}
+            ):Play()
+        end
+        
+        -- Clean up detector
+        if dropdown.ClickDetector then
+            dropdown.ClickDetector:Disconnect()
+            dropdown.ClickDetector = nil
+        end
+    end
+
+    -- Toggle dropdown
+    function dropdown:Toggle()
+        if self.ListFrame.Visible then
+            self:Close()
+        else
+            self:Open()
+        end
+    end
+
+    -- Initialize
     dropdown.Button.MouseButton1Click:Connect(function()
         dropdown:Toggle()
     end)
