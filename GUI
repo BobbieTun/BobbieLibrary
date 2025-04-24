@@ -14,7 +14,12 @@ local Theme = {
     SliderFill = Color3.fromRGB(120, 80, 255),
     ToggleOn = Color3.fromRGB(100, 200, 255),
     ButtonHover = Color3.fromRGB(70, 30, 110),
-    RuneColor = Color3.fromRGB(150, 100, 255)
+    RuneColor = Color3.fromRGB(150, 100, 255),
+    Padding = {
+        Section = 12,
+        Element = 8,
+        Text = 5
+    }
 }
 
 -- ====== UTILITY FUNCTIONS ======
@@ -57,16 +62,17 @@ local function AddNeonGlow(instance)
 end
 
 local function CreateRune(parent, position, size)
-    local rune = Instance.new("ImageLabel")
-    rune.Name = "MagicRune"
-    rune.Image = "rbxassetid://7733960981"
-    rune.Size = UDim2.new(0, size, 0, size)
-    rune.Position = position
-    rune.BackgroundTransparency = 1
-    rune.ImageColor3 = Theme.RuneColor
-    rune.ImageTransparency = 0.8
-    rune.ZIndex = 0
-    rune.Parent = parent
+    local rune = Create("ImageLabel", {
+        Name = "MagicRune",
+        Image = "rbxassetid://7733960981",
+        Size = UDim2.new(0, size, 0, size),
+        Position = position,
+        BackgroundTransparency = 1,
+        ImageColor3 = Theme.RuneColor,
+        ImageTransparency = 0.8,
+        ZIndex = 0,
+        Parent = parent
+    })
     
     spawn(function()
         while rune and rune.Parent do
@@ -130,7 +136,7 @@ end
 
 function GuiLibrary.new(title, config)
     config = config or {}
-    local defaultKeybind = Enum.KeyCode.LeftControl
+    local defaultKeybind = Enum.KeyCode.RightControl
     local keybind = config.ToggleKeybind or defaultKeybind
     
     local self = setmetatable({}, GuiLibrary)
@@ -144,7 +150,7 @@ function GuiLibrary.new(title, config)
     
     -- Create screen GUI
     self.ScreenGui = Create("ScreenGui", {
-        Name = "Bobbie",
+        Name = "ArcaneGUI",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
         Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
@@ -217,7 +223,7 @@ function GuiLibrary.new(title, config)
         Parent = self.TitleBar
     })
     
-    -- Tab container (now with horizontal scrolling)
+    -- Tab container
     self.TabContainerFrame = Create("Frame", {
         Name = "TabContainerFrame",
         BackgroundTransparency = 1,
@@ -494,103 +500,102 @@ function GuiLibrary:AddTab(name)
             return button
         end
         
-        -- Toggle element
-        f-- Inside your section creation code (where you have AddButton, AddToggle, etc.)
-function section:AddToggle(text, default, callback)
-    local toggle = {
-        Value = default or false,
-        Callback = callback or function() end
-    }
+        -- Toggle element (fixed implementation)
+        function section:AddToggle(text, default, callback)
+            local toggle = {
+                Value = default or false,
+                Callback = callback or function() end
+            }
+            
+            local toggleFrame = Create("Frame", {
+                Name = "ToggleFrame",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -Theme.Padding.Section, 0, 30),
+                Parent = self.Content
+            })
 
-    local toggleFrame = Create("Frame", {
-        Name = "ToggleFrame",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -Theme.Padding.Section, 0, 30),
-        Parent = self.Content
-    })
+            -- Toggle label
+            local label = Create("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0.7, 0, 1, 0),
+                Position = UDim2.new(0, 0, 0, 0),
+                Text = text,
+                TextColor3 = Theme.Text,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = toggleFrame
+            })
 
-    -- Toggle label
-    local label = Create("TextLabel", {
-        Name = "Label",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0.7, 0, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        Text = text,
-        TextColor3 = Theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = toggleFrame
-    })
+            -- Toggle button container
+            local toggleButton = Create("TextButton", {
+                Name = "ToggleButton",
+                BackgroundColor3 = Theme.Foreground,
+                BorderColor3 = Theme.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(0, 50, 0, 24),
+                Position = UDim2.new(1, -5, 0.5, 0),
+                AnchorPoint = Vector2.new(1, 0.5),
+                AutoButtonColor = false,
+                Text = "",
+                Parent = toggleFrame
+            })
+            AddNeonGlow(toggleButton)
 
-    -- Toggle button container
-    local toggleButton = Create("TextButton", {
-        Name = "ToggleButton",
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Size = UDim2.new(0, 50, 0, 24),
-        Position = UDim2.new(1, -5, 0.5, 0),
-        AnchorPoint = Vector2.new(1, 0.5),
-        AutoButtonColor = false,
-        Text = "",
-        Parent = toggleFrame
-    })
-    AddNeonGlow(toggleButton)
+            -- Toggle indicator (the circle that moves)
+            local toggleIndicator = Create("Frame", {
+                Name = "Indicator",
+                BackgroundColor3 = Theme.ToggleOn,
+                Size = UDim2.new(0, 20, 0, 20),
+                Position = UDim2.new(0, 2, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                Parent = toggleButton
+            })
+            AddNeonGlow(toggleIndicator)
 
-    -- Toggle indicator (the circle that moves)
-    local toggleIndicator = Create("Frame", {
-        Name = "Indicator",
-        BackgroundColor3 = Theme.ToggleOn,
-        Size = UDim2.new(0, 20, 0, 20),
-        Position = UDim2.new(0, 2, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        Parent = toggleButton
-    })
-    AddNeonGlow(toggleIndicator)
+            -- Function to update toggle visual state
+            local function updateToggle()
+                if toggle.Value then
+                    -- ON state (indicator on right)
+                    game:GetService("TweenService"):Create(
+                        toggleIndicator,
+                        TweenInfo.new(0.2),
+                        {
+                            Position = UDim2.new(1, -22, 0.5, 0),
+                            BackgroundColor3 = Theme.ToggleOn
+                        }
+                    ):Play()
+                else
+                    -- OFF state (indicator on left)
+                    game:GetService("TweenService"):Create(
+                        toggleIndicator,
+                        TweenInfo.new(0.2),
+                        {
+                            Position = UDim2.new(0, 2, 0.5, 0),
+                            BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+                        }
+                    ):Play()
+                end
+            end
 
-    -- Function to update toggle visual state
-    local function updateToggle()
-        if toggle.Value then
-            -- ON state (indicator on right)
-            game:GetService("TweenService"):Create(
-                toggleIndicator,
-                TweenInfo.new(0.2),
-                {
-                    Position = UDim2.new(1, -22, 0.5, 0),
-                    BackgroundColor3 = Theme.ToggleOn
-                }
-            ):Play()
-        else
-            -- OFF state (indicator on left)
-            game:GetService("TweenService"):Create(
-                toggleIndicator,
-                TweenInfo.new(0.2),
-                {
-                    Position = UDim2.new(0, 2, 0.5, 0),
-                    BackgroundColor3 = Color3.fromRGB(150, 150, 150)
-                }
-            ):Play()
+            -- Set initial state
+            updateToggle()
+
+            -- Click handler
+            toggleButton.MouseButton1Click:Connect(function()
+                toggle.Value = not toggle.Value
+                updateToggle()
+                toggle.Callback(toggle.Value)
+            end)
+
+            -- Public method to set toggle state
+            function toggle:SetValue(value)
+                toggle.Value = value
+                updateToggle()
+                toggle.Callback(value)
+            end
+
+            return toggle
         end
-    end
-
-    -- Set initial state
-    updateToggle()
-
-    -- Click handler
-    toggleButton.MouseButton1Click:Connect(function()
-        toggle.Value = not toggle.Value
-        updateToggle()
-        toggle.Callback(toggle.Value)
-    end)
-
-    -- Public method to set toggle state
-    function toggle:SetValue(value)
-        toggle.Value = value
-        updateToggle()
-        toggle.Callback(value)
-    end
-
-    return toggle
-end
         
         -- Slider element
         function section:AddSlider(text, min, max, default, callback)
@@ -724,7 +729,7 @@ end
             return slider
         end
         
-        -- Dropdown element (using the implementation we created earlier)
+        -- Dropdown element
         function section:AddDropdown(text, config)
             config = config or {}
             local dropdown = {
@@ -767,7 +772,7 @@ end
             -- Dropdown icon (animated)
             dropdown.Icon = Create("ImageLabel", {
                 Name = "Icon",
-                Image = "rbxassetid://7733960981", -- Rune-like icon
+                Image = "rbxassetid://7733960981",
                 Size = UDim2.new(0, 16, 0, 16),
                 Position = UDim2.new(1, -20, 0.5, 0),
                 AnchorPoint = Vector2.new(0, 0.5),
@@ -800,7 +805,7 @@ end
                 ClipsDescendants = true,
                 Visible = false,
                 ZIndex = 10,
-                Parent = self.Gui.MainFrame -- Parent to main frame for proper positioning
+                Parent = self.Gui.MainFrame
             })
             AddNeonGlow(dropdown.ListFrame)
             
@@ -976,7 +981,7 @@ end
                     -- Selection indicator (rune symbol)
                     local indicator = Create("ImageLabel", {
                         Name = "Indicator",
-                        Image = "rbxassetid://7733960981", -- Same rune as icon
+                        Image = "rbxassetid://7733960981",
                         Size = UDim2.new(0, 16, 0, 16),
                         Position = UDim2.new(0, 8, 0.5, 0),
                         AnchorPoint = Vector2.new(0, 0.5),
