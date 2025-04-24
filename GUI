@@ -730,212 +730,210 @@ function GuiLibrary:AddTab(name)
         end
         
         -- Dropdown element
-function section:AddDropdown(label, config)
-    config = config or {}
-    local values = config.Values or {}
-    local multi = config.Multi or false
-    local allowNull = config.AllowNull or false
-    local callback = config.Callback or function() end
-    local value = multi and {} or config.Default or nil
+function section:AddDropdown(text, config)
+	config = config or {}
+	local dropdown = {
+		Name = text,
+		Values = config.Values or {},
+		Value = config.Default or (config.Multi and {} or nil),
+		Multi = config.Multi or false,
+		Callback = config.Callback or function() end,
+		AllowNull = config.AllowNull or false
+	}
 
-    local container = Create("Frame", {
-        Size = UDim2.new(1, -10, 0, 32),
-        BackgroundTransparency = 1,
-        Parent = self.Content
-    })
+	-- Main dropdown button
+	dropdown.Button = Create("TextButton", {
+		Name = "DropdownButton",
+		BackgroundColor3 = Theme.Foreground,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = 1,
+		Size = UDim2.new(1, -10, 0, 32),
+		Text = "",
+		AutoButtonColor = false,
+		Parent = self.Content
+	})
+	AddNeonGlow(dropdown.Button)
 
-    local button = Create("TextButton", {
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "",
-        AutoButtonColor = false,
-        Parent = container
-    })
-    AddNeonGlow(button)
+	-- Display text
+	dropdown.Display = Create("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 10, 0, 0),
+		Size = UDim2.new(1, -30, 1, 0),
+		Font = Enum.Font.Gotham,
+		Text = text,
+		TextColor3 = Theme.Text,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = dropdown.Button
+	})
 
-    local labelText = Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(1, -30, 1, 0),
-        Font = Enum.Font.Gotham,
-        Text = label,
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = button
-    })
+	-- Dropdown icon
+	dropdown.Icon = Create("ImageLabel", {
+		Image = "rbxassetid://7733960981",
+		Size = UDim2.new(0, 16, 0, 16),
+		Position = UDim2.new(1, -20, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		BackgroundTransparency = 1,
+		ImageColor3 = Theme.Text,
+		Parent = dropdown.Button
+	})
 
-    local icon = Create("ImageLabel", {
-        Image = "rbxassetid://7733960981",
-        Size = UDim2.new(0, 16, 0, 16),
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -10, 0.5, 0),
-        BackgroundTransparency = 1,
-        ImageColor3 = Theme.Text,
-        Parent = button
-    })
+	-- List Frame
+	dropdown.ListFrame = Create("Frame", {
+		Name = "DropdownList",
+		BackgroundColor3 = Theme.Foreground,
+		BorderColor3 = Theme.Border,
+		Size = UDim2.new(1, -10, 0, 0),
+		ClipsDescendants = true,
+		Visible = false,
+		ZIndex = 10,
+		Parent = self.Gui.MainFrame
+	})
+	AddNeonGlow(dropdown.ListFrame)
 
-    local dropdownFrame = Create("Frame", {
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        Size = UDim2.new(1, -10, 0, 0),
-        ClipsDescendants = true,
-        Visible = false,
-        ZIndex = 10,
-        Parent = self.Gui.MainFrame
-    })
-    AddNeonGlow(dropdownFrame)
+	-- Scrollable list
+	dropdown.ScrollingFrame = Create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		ScrollBarThickness = 5,
+		ScrollBarImageColor3 = Theme.Accent,
+		Parent = dropdown.ListFrame
+	})
+	dropdown.ListLayout = Create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5),
+		Parent = dropdown.ScrollingFrame
+	})
 
-    local scroll = Create("ScrollingFrame", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        ScrollBarThickness = 5,
-        ScrollBarImageColor3 = Theme.Accent,
-        Parent = dropdownFrame
-    })
+	function dropdown:UpdateDisplay()
+		local text = ""
 
-    local layout = Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
-        Parent = scroll
-    })
+		if self.Multi then
+			for k, v in pairs(self.Value) do
+				if v then
+					text = text .. k .. ", "
+				end
+			end
+			self.Display.Text = text == "" and "None selected" or text:sub(1, -3)
+		else
+			self.Display.Text = self.Value or "Select."
+		end
+	end
 
-    local function updateDisplay()
-        local str = ""
-        if multi then
-            for k, v in pairs(value) do
-                if v then str = str .. k .. ", " end
-            end
-            labelText.Text = #str > 0 and str:sub(1, -3) or label
-        else
-            labelText.Text = value or label
-        end
-    end
+	function dropdown:BuildOptions()
+		for _, c in pairs(self.ScrollingFrame:GetChildren()) do
+			if c:IsA("TextButton") then
+				c:Destroy()
+			end
+		end
 
-    local function rebuild()
-        for _, child in pairs(scroll:GetChildren()) do
-            if child:IsA("TextButton") then child:Destroy() end
-        end
+		for _, value in ipairs(self.Values) do
+			local option = Create("TextButton", {
+				Text = value,
+				TextSize = 13,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Font = Enum.Font.Gotham,
+				BackgroundColor3 = Theme.Foreground,
+				TextColor3 = Theme.Text,
+				Size = UDim2.new(1, -10, 0, 28),
+				Parent = self.ScrollingFrame,
+				AutoButtonColor = false
+			})
 
-        for _, val in ipairs(values) do
-            local option = Create("TextButton", {
-                BackgroundColor3 = Theme.Foreground,
-                Size = UDim2.new(1, -10, 0, 28),
-                Text = val,
-                TextColor3 = Theme.Text,
-                Font = Enum.Font.Gotham,
-                TextSize = 13,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                ZIndex = 11,
-                Parent = scroll
-            })
+			option.MouseButton1Click:Connect(function()
+				if self.Multi then
+					self.Value[value] = not self.Value[value]
+				else
+					if self.Value == value and self.AllowNull then
+						self.Value = nil
+					else
+						self.Value = value
+						self:Close()
+					end
+				end
+				self:UpdateDisplay()
+				self.Callback(self.Value)
+			end)
+		end
 
-            option.MouseButton1Click:Connect(function()
-                if multi then
-                    value[val] = not value[val]
-                else
-                    if value == val and allowNull then
-                        value = nil
-                    else
-                        value = val
-                        dropdownFrame.Visible = false
-                    end
-                end
-                updateDisplay()
-                callback(value)
-            end)
-        end
+		task.wait()
+		self.ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, self.ListLayout.AbsoluteContentSize.Y)
+	end
 
-        task.wait()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
-        dropdownFrame.Size = UDim2.new(1, -10, 0, math.min(160, layout.AbsoluteContentSize.Y))
-    end
+	function dropdown:Open()
+		if self.ListFrame.Visible then return end
+		local pos = self.Button.AbsolutePosition
+		local root = self.Gui.MainFrame.AbsolutePosition
+		self.ListFrame.Position = UDim2.new(0, pos.X - root.X, 0, pos.Y - root.Y + self.Button.AbsoluteSize.Y + 5)
+		self.ListFrame.Visible = true
+		self.ListFrame.Size = UDim2.new(1, -10, 0, math.min(self.ListLayout.AbsoluteContentSize.Y, 200))
+	end
 
-    button.MouseButton1Click:Connect(function()
-        local pos = button.AbsolutePosition
-        local root = self.Gui.MainFrame.AbsolutePosition
-        dropdownFrame.Position = UDim2.new(0, pos.X - root.X, 0, pos.Y - root.Y + button.AbsoluteSize.Y + 4)
-        dropdownFrame.Visible = not dropdownFrame.Visible
-    end)
+	function dropdown:Close()
+		self.ListFrame.Visible = false
+	end
 
-    game:GetService("UserInputService").InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and dropdownFrame.Visible then
-            local m = input.Position
-            local p, s = dropdownFrame.AbsolutePosition, dropdownFrame.AbsoluteSize
-            local btn = button.AbsolutePosition
-            if not (m.X > p.X and m.X < p.X + s.X and m.Y > p.Y and m.Y < p.Y + s.Y) and
-               not (m.X > btn.X and m.X < btn.X + button.AbsoluteSize.X and m.Y > btn.Y and m.Y < btn.Y + button.AbsoluteSize.Y) then
-                dropdownFrame.Visible = false
-            end
-        end
-    end)
+	function dropdown:Toggle()
+		if self.ListFrame.Visible then
+			self:Close()
+		else
+			self:Open()
+		end
+	end
 
-    rebuild()
-    updateDisplay()
+	dropdown.Button.MouseButton1Click:Connect(function()
+		dropdown:Toggle()
+	end)
 
-    return {
-        SetValues = function(v)
-            values = v
-            rebuild()
-        end,
-        SetValue = function(v)
-            value = v
-            updateDisplay()
-            callback(value)
-        end,
-        GetValue = function() return value end
-    }
+	dropdown:BuildOptions()
+	dropdown:UpdateDisplay()
+
+	return dropdown
 end
+
 
         
         -- Text input element
 function section:AddInput(placeholder, default, callback)
-    local textValue = default or ""
-    local container = Create("Frame", {
-        Size = UDim2.new(1, -10, 0, 30),
-        BackgroundTransparency = 1,
-        Parent = self.Content
-    })
+	local input = {
+		Value = default or "",
+		Callback = callback or function() end
+	}
 
-    local box = Create("TextBox", {
-        BackgroundColor3 = Theme.Foreground,
-        BorderColor3 = Theme.Border,
-        BorderSizePixel = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.Gotham,
-        PlaceholderText = placeholder,
-        Text = textValue,
-        TextColor3 = Theme.Text,
-        TextSize = 14,
-        Parent = container
-    })
-    AddNeonGlow(box)
+	local frame = Create("Frame", {
+		Size = UDim2.new(1, -10, 0, 30),
+		BackgroundTransparency = 1,
+		Parent = self.Content
+	})
 
-    box.FocusLost:Connect(function()
-        textValue = box.Text
-        callback(textValue)
-    end)
+	local box = Create("TextBox", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = Theme.Foreground,
+		BorderColor3 = Theme.Border,
+		BorderSizePixel = 1,
+		Font = Enum.Font.Gotham,
+		Text = default or "",
+		PlaceholderText = placeholder or "",
+		TextColor3 = Theme.Text,
+		TextSize = 14,
+		Parent = frame
+	})
+	AddNeonGlow(box)
 
-    return {
-        SetValue = function(v)
-            textValue = v
-            box.Text = v
-        end,
-        GetValue = function()
-            return textValue
-        end
-    }
+	box.FocusLost:Connect(function()
+		input.Value = box.Text
+		input.Callback(input.Value)
+	end)
+
+	function input:SetValue(val)
+		input.Value = val
+		box.Text = val
+	end
+
+	return input
 end
 
-        
-        return section
-    end
-    
-    return tab
-end
 
 -- ====== GUI MANAGEMENT FUNCTIONS ======
 function GuiLibrary:UpdateCanvas(tab)
