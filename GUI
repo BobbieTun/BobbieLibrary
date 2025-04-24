@@ -766,7 +766,8 @@ function GuiLibrary:AddTab(name)
         Size = UDim2.new(1, 0, 1, 0),
         Text = "",
         AutoButtonColor = false,
-        Parent = dropdown.Frame
+        Parent = dropdown.Frame,
+        ZIndex = 2  -- Ensure button is above other elements
     })
     AddNeonGlow(dropdown.Button)
 
@@ -781,7 +782,8 @@ function GuiLibrary:AddTab(name)
         TextColor3 = Theme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = dropdown.Button
+        Parent = dropdown.Button,
+        ZIndex = 3
     })
 
     -- Value display
@@ -795,7 +797,8 @@ function GuiLibrary:AddTab(name)
         TextColor3 = Theme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Right,
-        Parent = dropdown.Button
+        Parent = dropdown.Button,
+        ZIndex = 3
     })
 
     -- Dropdown icon (chevron)
@@ -809,7 +812,8 @@ function GuiLibrary:AddTab(name)
         AnchorPoint = Vector2.new(0, 0.5),
         BackgroundTransparency = 1,
         ImageColor3 = Theme.Text,
-        Parent = dropdown.Button
+        Parent = dropdown.Button,
+        ZIndex = 3
     })
 
     -- Dropdown list frame (positioned absolutely)
@@ -822,7 +826,8 @@ function GuiLibrary:AddTab(name)
         Size = UDim2.new(1, 0, 0, 0),
         ClipsDescendants = true,
         Visible = false,
-        Parent = dropdown.Frame
+        Parent = dropdown.Frame,
+        ZIndex = 10  -- Ensure list appears above other elements
     })
     AddNeonGlow(dropdown.ListFrame)
 
@@ -830,6 +835,13 @@ function GuiLibrary:AddTab(name)
     dropdown.ListLayout = Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 5),
+        Parent = dropdown.ListFrame
+    })
+
+    -- Create padding for the list
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 5),
+        PaddingBottom = UDim.new(0, 5),
         Parent = dropdown.ListFrame
     })
 
@@ -873,7 +885,8 @@ function GuiLibrary:AddTab(name)
                 TextColor3 = Theme.Text,
                 TextSize = 14,
                 AutoButtonColor = false,
-                Parent = self.ListFrame
+                Parent = self.ListFrame,
+                ZIndex = 11  -- Ensure options appear above list frame
             })
 
             -- Hover effects
@@ -912,7 +925,7 @@ function GuiLibrary:AddTab(name)
 
         -- Update list size
         task.wait()
-        local contentHeight = self.ListLayout.AbsoluteContentSize.Y
+        local contentHeight = self.ListLayout.AbsoluteContentSize.Y + 10  -- Add padding
         self.ListFrame.Size = UDim2.new(1, 0, 0, math.min(contentHeight, 200))
     end
 
@@ -928,6 +941,7 @@ function GuiLibrary:AddTab(name)
         
         self.ListFrame.Position = UDim2.new(0, relativeX, 0, relativeY)
         self.ListFrame.Visible = true
+        self.ListFrame.ZIndex = 10
         
         -- Rotate chevron icon
         game:GetService("TweenService"):Create(
