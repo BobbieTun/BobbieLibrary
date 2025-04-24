@@ -737,7 +737,7 @@ function GuiLibrary:AddTab(name)
         end
         
         -- Dropdown element
-       function section:AddDropdown(text, options)
+function section:AddDropdown(text, options)
     options = options or {}
     local dropdown = {
         Name = text,
@@ -749,24 +749,24 @@ function GuiLibrary:AddTab(name)
         Value = options.Multi and {} or nil
     }
 
-    -- Custom colors
+    -- New color scheme
     local dropdownColors = {
         Background = Color3.fromRGB(240, 240, 240),  -- Light gray
-        Border = Color3.fromRGB(180, 160, 220),      -- Soft purple
-        Highlight = Color3.fromRGB(230, 220, 250),   -- Light lilac
-        Text = Color3.fromRGB(80, 60, 120),          -- Dark purple
-        Accent = Color3.fromRGB(150, 120, 200)       -- Medium purple
+        Border = Color3.fromRGB(180, 160, 220),      -- Soft purple border
+        Highlight = Color3.fromRGB(230, 220, 250),   -- Light lilac selection
+        Text = Color3.fromRGB(80, 60, 120),          -- Dark purple text
+        Accent = Color3.fromRGB(150, 120, 200)       -- Purple accent
     }
 
-    -- Create dropdown elements (same as before)
+    -- Main dropdown frame
     dropdown.Frame = Create("Frame", {
         Name = "DropdownFrame",
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -10, 0, 32),
-        Parent = self.Content,
-        ZIndex = 5
+        Parent = self.Content
     })
 
+    -- Dropdown button with new colors
     dropdown.Button = Create("TextButton", {
         Name = "DropdownButton",
         BackgroundColor3 = dropdownColors.Background,
@@ -775,19 +775,58 @@ function GuiLibrary:AddTab(name)
         Size = UDim2.new(1, 0, 1, 0),
         Text = "",
         AutoButtonColor = false,
-        Parent = dropdown.Frame,
-        ZIndex = 6
+        Parent = dropdown.Frame
     })
-
-    -- Add glow effect
+    
+    -- Add purple glow
     local buttonGlow = Instance.new("UIStroke", dropdown.Button)
     buttonGlow.Color = dropdownColors.Accent
     buttonGlow.Thickness = 1
     buttonGlow.Transparency = 0.7
 
-    -- Create other elements (label, value display, icon) same as before...
+    -- Dropdown label with purple text
+    dropdown.Label = Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(0.7, -10, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = text,
+        TextColor3 = dropdownColors.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = dropdown.Button
+    })
 
-    -- List frame with scrolling
+    -- Value display with purple text
+    dropdown.ValueDisplay = Create("TextLabel", {
+        Name = "ValueDisplay",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.7, 0, 0, 0),
+        Size = UDim2.new(0.3, -30, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = dropdown.Default or (dropdown.Multi and "None" or "Select"),
+        TextColor3 = dropdownColors.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = dropdown.Button
+    })
+
+    -- Purple chevron icon
+    dropdown.Icon = Create("ImageLabel", {
+        Name = "Icon",
+        Image = "rbxassetid://3926305904",
+        ImageRectOffset = Vector2.new(284, 4),
+        ImageRectSize = Vector2.new(24, 24),
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(1, -20, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        ImageColor3 = dropdownColors.Accent,
+        Parent = dropdown.Button
+    })
+
+    -- Dropdown list frame with light gray background
     dropdown.ListFrame = Create("ScrollingFrame", {
         Name = "DropdownList",
         BackgroundColor3 = dropdownColors.Background,
@@ -800,19 +839,32 @@ function GuiLibrary:AddTab(name)
         ScrollBarImageColor3 = dropdownColors.Accent,
         ClipsDescendants = true,
         Visible = false,
-        Parent = dropdown.Frame,
-        ZIndex = 10
+        Parent = dropdown.Frame
     })
 
-    -- Add glow to list
+    -- Add glow to list frame
     local listGlow = Instance.new("UIStroke", dropdown.ListFrame)
     listGlow.Color = dropdownColors.Accent
     listGlow.Thickness = 1
     listGlow.Transparency = 0.7
 
-    -- Layout and padding same as before...
+    -- List layout
+    dropdown.ListLayout = Create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = dropdown.ListFrame
+    })
 
-    -- Update display method
+    -- Add padding
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 5),
+        PaddingBottom = UDim.new(0, 5),
+        PaddingLeft = UDim.new(0, 5),
+        PaddingRight = UDim.new(0, 5),
+        Parent = dropdown.ListFrame
+    })
+
+    -- Update display text
     function dropdown:UpdateDisplay()
         if self.Multi then
             local selected = {}
@@ -825,7 +877,7 @@ function GuiLibrary:AddTab(name)
         end
     end
 
-    -- Build options method
+    -- Build option buttons with light lilac selection
     function dropdown:BuildOptions()
         -- Clear existing options
         for _, child in ipairs(self.ListFrame:GetChildren()) do
@@ -835,10 +887,68 @@ function GuiLibrary:AddTab(name)
         -- Create new options
         for _, value in ipairs(self.Values) do
             local option = Create("TextButton", {
-                -- Option properties same as before...
+                Name = "Option_"..value,
+                BackgroundColor3 = dropdownColors.Background,
+                BorderColor3 = dropdownColors.Border,
+                BorderSizePixel = 1,
+                Size = UDim2.new(1, -10, 0, 28),
+                Font = Enum.Font.Gotham,
+                Text = value,
+                TextColor3 = dropdownColors.Text,
+                TextSize = 14,
+                AutoButtonColor = false,
+                Parent = self.ListFrame
             })
 
-            -- Hover and selection logic same as before...
+            -- Add glow to options
+            local optionGlow = Instance.new("UIStroke", option)
+            optionGlow.Color = dropdownColors.Accent
+            optionGlow.Thickness = 0.8
+            optionGlow.Transparency = 0.8
+
+            -- Hover effects - light lilac
+            option.MouseEnter:Connect(function()
+                option.BackgroundColor3 = dropdownColors.Highlight
+                optionGlow.Transparency = 0.5
+            end)
+
+            option.MouseLeave:Connect(function()
+                local isSelected = self.Multi and self.Value[value] or self.Value == value
+                option.BackgroundColor3 = isSelected and dropdownColors.Highlight or dropdownColors.Background
+                optionGlow.Transparency = isSelected and 0.5 or 0.8
+            end)
+
+            -- Click handler
+            option.MouseButton1Click:Connect(function()
+                if self.Multi then
+                    self.Value[value] = not self.Value[value]
+                else
+                    if self.Value == value and self.AllowNull then
+                        self.Value = nil
+                    else
+                        self.Value = value
+                    end
+                    self:Close()
+                end
+                
+                -- Update all option appearances
+                for _, opt in ipairs(self.ListFrame:GetChildren()) do
+                    if opt:IsA("TextButton") then
+                        local optValue = opt.Text
+                        local isSelected = self.Multi and self.Value[optValue] or self.Value == optValue
+                        opt.BackgroundColor3 = isSelected and dropdownColors.Highlight or dropdownColors.Background
+                        opt.UIStroke.Transparency = isSelected and 0.5 or 0.8
+                    end
+                end
+                
+                self:UpdateDisplay()
+                self.Callback(self.Value)
+            end)
+
+            -- Set initial selection state
+            local isSelected = self.Multi and self.Value[value] or self.Value == value
+            option.BackgroundColor3 = isSelected and dropdownColors.Highlight or dropdownColors.Background
+            optionGlow.Transparency = isSelected and 0.5 or 0.8
         end
 
         -- Update scrolling frame size
@@ -848,43 +958,49 @@ function GuiLibrary:AddTab(name)
         self.ListFrame.CanvasSize = UDim2.new(0, 0, 0, self.ListLayout.AbsoluteContentSize.Y)
     end
 
-    -- Open method
+    -- Open dropdown
     function dropdown:Open()
         if self.ListFrame.Visible then return end
         
         self.ListFrame.Visible = true
-        game:GetService("TweenService"):Create(
-            self.Icon,
-            TweenInfo.new(0.2),
-            {Rotation = 180}
-        ):Play()
+        if self.Icon then
+            game:GetService("TweenService"):Create(
+                self.Icon,
+                TweenInfo.new(0.2),
+                {Rotation = 180}
+            ):Play()
+        end
         
         -- Click outside detection
         dropdown.ClickDetector = game:GetService("UserInputService").InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                local mouseTarget = game:GetService("Players").LocalPlayer:GetMouse().Target
-                if mouseTarget and not (self.Frame:IsAncestorOf(mouseTarget)) then
+                local mouseTarget = input.UserInputState == Enum.UserInputState.Begin and game:GetService("Players").LocalPlayer:GetMouse().Target
+                if mouseTarget and not (self.Frame:IsAncestorOf(mouseTarget) or self.ListFrame:IsAncestorOf(mouseTarget)) then
                     self:Close()
                 end
             end
         end)
     end
 
-    -- Close method
+    -- Close dropdown
     function dropdown:Close()
         if not self.ListFrame.Visible then return end
         self.ListFrame.Visible = false
-        game:GetService("TweenService"):Create(
-            self.Icon,
-            TweenInfo.new(0.2),
-            {Rotation = 0}
-        ):Play()
+        
+        if self.Icon then
+            game:GetService("TweenService"):Create(
+                self.Icon,
+                TweenInfo.new(0.2),
+                {Rotation = 0}
+            ):Play()
+        end
+        
         if dropdown.ClickDetector then
             dropdown.ClickDetector:Disconnect()
         end
     end
 
-    -- Toggle method (THIS WAS MISSING)
+    -- Toggle dropdown
     function dropdown:Toggle()
         if self.ListFrame.Visible then
             self:Close()
@@ -893,7 +1009,7 @@ function GuiLibrary:AddTab(name)
         end
     end
 
-    -- Initialize dropdown
+    -- Initialize
     dropdown.Button.MouseButton1Click:Connect(function()
         dropdown:Toggle()
     end)
@@ -902,7 +1018,6 @@ function GuiLibrary:AddTab(name)
 
     return dropdown
 end
-        
         -- Text input element
         function section:AddInput(options)
             options = options or {}
